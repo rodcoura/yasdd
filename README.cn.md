@@ -21,9 +21,10 @@ yasdd 是纯 markdown —— 无构建步骤, 无依赖。把 `skills/` 和 `com
 git clone https://github.com/rodcoura/yasdd ~/projects/yasdd
 
 # 全局安装
-mkdir -p ~/.agents/skills ~/.agents/commands
+mkdir -p ~/.agents/skills ~/.agents/commands ~/.agents/prompts
 for s in ~/projects/yasdd/skills/*; do ln -sf "$s" ~/.agents/skills/; done
 for c in ~/projects/yasdd/commands/*.md; do ln -sf "$c" ~/.agents/commands/; done
+for p in ~/projects/yasdd/prompts/*.md; do ln -sf "$p" ~/.agents/prompts/; done
 ```
 
 项目内安装则把循环中的 `~/.agents/` 换成 `.agents/`。然后在项目中运行 `/yasdd-init` 创建 `.yasdd/` 并更新 `AGENTS.md`。

@@ -21,9 +21,10 @@ Faça symlink de cada skill + command (seguro se a pasta já tiver outras skills
 git clone https://github.com/rodcoura/yasdd ~/projects/yasdd
 
 # instalação global
-mkdir -p ~/.agents/skills ~/.agents/commands
+mkdir -p ~/.agents/skills ~/.agents/commands ~/.agents/prompts
 for s in ~/projects/yasdd/skills/*; do ln -sf "$s" ~/.agents/skills/; done
 for c in ~/projects/yasdd/commands/*.md; do ln -sf "$c" ~/.agents/commands/; done
+for p in ~/projects/yasdd/prompts/*.md; do ln -sf "$p" ~/.agents/prompts/; done
 ```
 
 Para instalação por projeto, repita os loops com `.agents/` no lugar de `~/.agents/`. Depois rode `/yasdd-init` no seu projeto para criar o `.yasdd/` e atualizar o `AGENTS.md`.
