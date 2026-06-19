@@ -1,0 +1,118 @@
+# yasdd
+
+> Yet Another Spec-Driven Development framework — a pragmatic, markdown-only SDD pipeline for AI coding agents.
+
+**Languages:** [English](README.md) · [Português (Brasil)](README.pt-br.md) · [中文](README.cn.md)
+
+---
+
+## Installation
+
+yasdd is pure markdown — no build step, no dependencies. Place `skills/` and `commands/` where your agent harness reads them. Pick one location:
+
+- **Global (all projects):** `~/.agents/` — gives you `~/.agents/skills/yasdd-*/SKILL.md` and `~/.agents/commands/yasdd*.md`.
+- **Project-local (one repo):** `.agents/` in the project root — `.agents/skills/...` and `.agents/commands/...`.
+- **Custom:** any folder your agent harness loads skills/commands from.
+
+Symlink each skill + command (safe if the folder already holds other skills):
+
+```bash
+# clone
+git clone https://github.com/rodcoura/yasdd ~/projects/yasdd
+
+# global install
+mkdir -p ~/.agents/skills ~/.agents/commands
+for s in ~/projects/yasdd/skills/*; do ln -sf "$s" ~/.agents/skills/; done
+for c in ~/projects/yasdd/commands/*.md; do ln -sf "$c" ~/.agents/commands/; done
+```
+
+For a project-local install, repeat the loops with `.agents/` instead of `~/.agents/`. Then run `/yasdd-init` in your project to scaffold `.yasdd/` and update `AGENTS.md`.
+
+---
+
+## What is yasdd?
+
+yasdd is a **spec-driven development framework** made entirely of markdown skills and commands. It gives an AI coding agent a repeatable pipeline to take a vague feature request and turn it into a fully implemented, reviewed feature — without overthinking and without skipping the hard questions.
+
+It is not source code. There is no build system. Everything lives in `commands/` (the user-facing playbook commands) and `skills/` (the subagent instructions).
+
+## How it works
+
+Every feature flows through a 6-step pipeline:
+
+```
+0. config          read .yasdd/config.yml
+1. DISCUSS         grill the user until the feature is gap-free  → DISCUSS.md
+2. DESIGN          pragmatic design from the discussion          → DESIGN.md
+3. SPECS           decompose the design into 1..maxSpecs specs     → specs/*.md + STATE.md
+4. PLAN            pick which specs to implement now (or all in autoMode)
+5. IMPLEMENT LOOP  per spec, sequential: implementer → verifier → re-loop (cap 3)
+6. WRAP UP         update project state
+```
+
+Three core ideas make yasdd work:
+
+- **Lean specs**: each spec is a single page (Refs / Goal / I/O / Rules / Scenarios / **Acceptance** / Out of scope). No prose padding.
+- **Acceptance = Given/When/Then**: the happy path + each Scenario, each checkable by a test. This makes the "functioning spec" rule verifiable instead of self-reported.
+- **FINISHED/ISSUES protocol**: the implementer ends its output with a status token. The orchestrator parses it: `FINISHED` → verify; `ISSUES` → surface to the user (or, in autoMode, mark the spec blocked with `- [~]` and continue).
+
+## Commands
+
+| Command | What it does |
+| --- | --- |
+| `/yasdd` | Start a new feature: discuss → design → specs → state, then offer to implement. |
+| `/yasdd-implement <slug>` | Resume implementing a single feature's specs from its STATE.md. |
+| `/yasdd-continue` | Resume **every** in-progress feature that still has pending specs. |
+| `/yasdd-status [slug]` | Print project + feature spec status. |
+| `/yasdd-goback <slug>` | Update an already-implemented feature by writing ONE new spec. |
+| `/yasdd-doubt <slug>` | Explain an implemented feature concisely (read-only). |
+| `/yasdd-init` | Initialize yasdd for a project (scaffolding + AGENTS.md). |
+| `/yasdd-clear` | Remove all features and reset PROJECT-STATE.md (destructive). |
+
+## Skills (subagents)
+
+| Skill | Role |
+| --- | --- |
+| `yasdd-discuss` | Batched elicitation; writes DISCUSS.md. |
+| `yasdd-designer` | Writes DESIGN.md; defines components, data, interfaces, risks, **Non-functional** NFRs. |
+| `yasdd-specs` | Decomposes DESIGN into specs; carries NFRs into spec Rules. |
+| `yasdd-implementer` | Implements ONE spec: scoped reads, code + minimal tests, conformance table, increments SUMMARY.md (Business/Implemented/Files), returns FINISHED/ISSUES. |
+| `yasdd-verifier` | Multi-track research-only review + a **tests-green gate** (runs lint/typecheck/tests before tracks). |
+| `yasdd-goback` | Updates an implemented feature with one new spec. |
+| `yasdd-doubt` | Explains a feature (read-only). |
+| `yasdd-init` | Scaffolds `.yasdd/` and config. |
+| `yasdd-clear` | Wipes features (keeps config). |
+
+## Quick start
+
+1. Run `/yasdd-init` once in your project (creates `.yasdd/`, `config.yml`, `PROJECT-STATE.md`, and updates `AGENTS.md`).
+2. Run `/yasdd` and answer the batched questions about your feature.
+3. The pipeline authors `DISCUSS.md → DESIGN.md → specs/ → STATE.md`, then offers to implement.
+4. Specs are implemented sequentially: implementer → verifier → (fix → re-verify, up to 3×).
+5. Done? `SUMMARY.md` has grown with one bullet per implementation across `## Business` (PM language), `## Implemented` (architecture), and `## Files` (changed files); `PROJECT-STATE.md` is updated.
+
+## Configuration
+
+`.yasdd/config.yml`:
+
+```yaml
+autoMode: false      # true = implement all specs without asking
+maxParallelism: 3    # cap on parallel subagent calls per step
+maxSpecs: 5          # cap on specs generated from one DESIGN
+```
+
+## What lives where
+
+```
+.yasdd/
+  config.yml
+  PROJECT-STATE.md                 # all features at a glance
+  features/<slug>/
+    DISCUSS.md
+    DESIGN.md
+    STATE.md                        # spec checklist: [ ] [x] [~]
+    SUMMARY.md                      # Business / Implemented / Files (appended per implementation)
+    specs/NN-<spec-slug>.md
+```
+
+Spec status markers: `- [ ]` unimplemented · `- [x]` done · `- [~]` blocked.
