@@ -35,3 +35,7 @@ For each subagent role, launch the harness's existing subagent (Task tool, `suba
 ## Rules
 - Handoffs are file references (pass slug/paths, not big text). Stay terse.
 - For commands/skills discovery: if the skill tool does not find a yasdd skill, fall back to reading `~/.agents/skills/<name>/SKILL.md` directly.
+
+## Arguments
+
+$ARGUMENTS
