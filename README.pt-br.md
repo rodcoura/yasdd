@@ -62,6 +62,7 @@ Três ideias centrais fazem o yasdd funcionar:
 | Comando | O que faz |
 | --- | --- |
 | `/yasdd` | Inicia uma nova feature: discutir → projetar → specs → estado, depois oferece para implementar. |
+| `/yasdd-quick-win` | Inicia um quick win em um único fluxo: discutir → spec única fusionada → implementação → revisão leve. |
 | `/yasdd-implement <slug>` | Retoma a implementação dos specs de uma feature a partir do STATE.md. |
 | `/yasdd-continue` | Retoma **todas** as features em andamento que ainda têm specs pendentes. |
 | `/yasdd-status [slug]` | Mostra o status do projeto e dos specs da feature. |
@@ -75,10 +76,12 @@ Três ideias centrais fazem o yasdd funcionar:
 | Skill | Papel |
 | --- | --- |
 | `yasdd-discuss` | Elicitação em lote; escreve DISCUSS.md. |
+| `yasdd-quick-discuss` | Elicitação em lote para quick win; escreve `.yasdd/quick-wins/<slug>/DISCUSS.md`. |
 | `yasdd-designer` | Escreve DESIGN.md; define componentes, dados, interfaces, riscos, **Non-functional** (NFRs). |
 | `yasdd-specs` | Decompõe o DESIGN em specs; carrega NFRs para as Rules dos specs. |
-| `yasdd-implementer` | Implementa UM spec: leituras focadas, código + testes mínimos, tabela de conformidade, incrementa SUMMARY.md (Business/Implemented/Files), retorna FINISHED/ISSUES. |
-| `yasdd-verifier` | Revisão multi-track somente pesquisa + um **gate de testes verdes** (roda lint/typecheck/tests antes das tracks). |
+| `yasdd-quick-spec` | Fusiona design + um spec enxuto para quick win; escreve `.yasdd/quick-wins/<slug>/SPEC.md`. |
+| `yasdd-implementer` | Implementa UM spec: leituras focadas, código + testes mínimos, tabela de conformidade, incrementa SUMMARY.md (Business/Implemented/Files), retorna FINISHED/ISSUES. Reutilizado por quick wins com override de caminho. |
+| `yasdd-verifier` | Revisão multi-track somente pesquisa + um **gate de testes verdes** (roda lint/typecheck/tests antes das tracks). Reutilizado por quick wins com override mais leve de uma única track. |
 | `yasdd-goback` | Atualiza uma feature implementada com um novo spec. |
 | `yasdd-doubt` | Explica uma feature (somente leitura). |
 | `yasdd-init` | Cria o `.yasdd/` e a config. |
@@ -114,6 +117,22 @@ maxSpecs: 5          # limite de specs gerados a partir de um DESIGN
     STATE.md                        # checklist de specs: [ ] [x] [~]
     SUMMARY.md                      # Business / Implemented / Files (incrementado por implementação)
     specs/NN-<spec-slug>.md
+  quick-wins/<slug>/
+    DISCUSS.md
+    SPEC.md                         # design fusionado + um spec enxuto
+    SUMMARY.md                      # Business / Implemented / Files
 ```
 
 Marcadores de status dos specs: `- [ ]` não implementado · `- [x]` concluído · `- [~]` bloqueado.
+
+### Quick wins
+
+`/yasdd-quick-win` colapsa a pipeline SDD completa em um fluxo stateless de um único disparo:
+
+```
+DISCUSS → SPEC (design + spec fusionados) → IMPLEMENTAÇÃO → REVISÃO LEVE DE CÓDIGO
+```
+
+- Um `SPEC.md` por quick win — sem diretório `specs/`.
+- Sem `STATE.md`; inspecione a pasta diretamente.
+- Sem atualizações no `PROJECT-STATE.md`.

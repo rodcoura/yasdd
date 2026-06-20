@@ -62,6 +62,7 @@ Three core ideas make yasdd work:
 | Command | What it does |
 | --- | --- |
 | `/yasdd` | Start a new feature: discuss → design → specs → state, then offer to implement. |
+| `/yasdd-quick-win` | Start a single-shot quick win: discuss → one fused spec → implementation → light review. |
 | `/yasdd-implement <slug>` | Resume implementing a single feature's specs from its STATE.md. |
 | `/yasdd-continue` | Resume **every** in-progress feature that still has pending specs. |
 | `/yasdd-status [slug]` | Print project + feature spec status. |
@@ -75,10 +76,12 @@ Three core ideas make yasdd work:
 | Skill | Role |
 | --- | --- |
 | `yasdd-discuss` | Batched elicitation; writes DISCUSS.md. |
+| `yasdd-quick-discuss` | Quick-win batched elicitation; writes `.yasdd/quick-wins/<slug>/DISCUSS.md`. |
 | `yasdd-designer` | Writes DESIGN.md; defines components, data, interfaces, risks, **Non-functional** NFRs. |
 | `yasdd-specs` | Decomposes DESIGN into specs; carries NFRs into spec Rules. |
-| `yasdd-implementer` | Implements ONE spec: scoped reads, code + minimal tests, conformance table, increments SUMMARY.md (Business/Implemented/Files), returns FINISHED/ISSUES. |
-| `yasdd-verifier` | Multi-track research-only review + a **tests-green gate** (runs lint/typecheck/tests before tracks). |
+| `yasdd-quick-spec` | Fuses design + one lean spec for a quick win; writes `.yasdd/quick-wins/<slug>/SPEC.md`. |
+| `yasdd-implementer` | Implements ONE spec: scoped reads, code + minimal tests, conformance table, increments SUMMARY.md (Business/Implemented/Files), returns FINISHED/ISSUES. Reused by quick wins with a path override. |
+| `yasdd-verifier` | Multi-track research-only review + a **tests-green gate** (runs lint/typecheck/tests before tracks). Reused by quick wins with a lighter, single-track override. |
 | `yasdd-goback` | Updates an implemented feature with one new spec. |
 | `yasdd-doubt` | Explains a feature (read-only). |
 | `yasdd-init` | Scaffolds `.yasdd/` and config. |
@@ -114,6 +117,22 @@ maxSpecs: 5          # cap on specs generated from one DESIGN
     STATE.md                        # spec checklist: [ ] [x] [~]
     SUMMARY.md                      # Business / Implemented / Files (appended per implementation)
     specs/NN-<spec-slug>.md
+  quick-wins/<slug>/
+    DISCUSS.md
+    SPEC.md                         # fused design + one lean spec
+    SUMMARY.md                      # Business / Implemented / Files
 ```
 
 Spec status markers: `- [ ]` unimplemented · `- [x]` done · `- [~]` blocked.
+
+### Quick wins
+
+`/yasdd-quick-win` collapses the full SDD pipeline into a single-shot, stateless flow:
+
+```
+DISCUSS → SPEC (fused design + spec) → IMPLEMENTATION → LIGHT CODE REVIEW
+```
+
+- One `SPEC.md` per quick win — no `specs/` directory.
+- No `STATE.md`; inspect the folder directly.
+- No `PROJECT-STATE.md` updates.
