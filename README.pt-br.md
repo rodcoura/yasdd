@@ -39,7 +39,7 @@ Não é código-fonte. Não há build system. Tudo vive em `commands/` (comandos
 
 ## Como funciona
 
-Cada feature percorre uma pipeline de 6 passos:
+Cada feature percorre uma pipeline de 7 passos:
 
 ```
 0. config          lê .yasdd/config.yml
@@ -47,15 +47,17 @@ Cada feature percorre uma pipeline de 6 passos:
 2. DESIGN          design pragmático a partir da discussão                → DESIGN.md
 3. SPECS           decompõe o design em 1..maxSpecs specs                 → specs/*.md + STATE.md
 4. PLAN            escolhe quais specs implementar agora (ou todos em autoMode)
-5. IMPLEMENT LOOP  por spec, sequencial: implementador → verificador → re-loop (máx 3)
-6. WRAP UP         atualiza o estado do projeto
+5. IMPLEMENT LOOP  por spec, sequencial: implementador → marca como feito (sem verificador por spec)
+6. FINAL VERIFY    UMA revisão a nível de feature + gate de testes verdes sobre todo o diff (máx 3 rodadas)
+7. WRAP UP         atualiza o estado do projeto
 ```
 
 Três ideias centrais fazem o yasdd funcionar:
 
-- **Specs enxutas**: cada spec é uma página única (Refs / Goal / I/O / Rules / Scenarios / **Acceptance** / Out of scope). Sem enchimento de prosa.
+- **Specs enxutas e auto-suficientes**: cada spec é uma página única (Refs / Goal / I/O / Data / Interfaces / Rules / Scenarios / **Acceptance** / Out of scope) — carrega as formas de dados concretas e as assinaturas de interface necessárias para implementá-lo, então o implementador nunca precisa do DESIGN.md. Sem enchimento de prosa.
 - **Acceptance = Given/When/Then**: o caminho feliz + cada Cenário, cada um verificável por um teste. Isso torna a regra de "spec funcionando" verificável, e não autorreportada.
-- **Protocolo FINISHED/ISSUES**: o implementador termina sua saída com um token de status. O orquestrador o analisa: `FINISHED` → verificar; `ISSUES` → mostrar ao usuário (ou, em autoMode, marcar o spec como bloqueado com `- [~]` e continuar).
+- **Verificação única a nível de feature**: em vez de um verificador por spec, um único verificador roda após todos os specs serem implementados — ele executa o gate de testes verdes uma vez sobre todos os arquivos alterados e revisa o diff inteiro da feature para conformidade + code review, depois atribui os achados aos specs para roteamento. Menor uso de tokens, contexto compartilhado.
+- **Protocolo FINISHED/ISSUES**: o implementador termina sua saída com um token de status. O orquestrador o analisa: `FINISHED` → marcar como feito; `ISSUES` → mostrar ao usuário (ou, em autoMode, marcar o spec como bloqueado com `- [~]` e continuar).
 
 ## Comandos
 
@@ -81,7 +83,7 @@ Três ideias centrais fazem o yasdd funcionar:
 | `yasdd-specs` | Decompõe o DESIGN em specs; carrega NFRs para as Rules dos specs. |
 | `yasdd-quick-spec` | Fusiona design + um spec enxuto para quick win; escreve `.yasdd/quick-wins/<slug>/SPEC.md`. |
 | `yasdd-implementer` | Implementa UM spec: leituras focadas, código + testes mínimos, tabela de conformidade, incrementa SUMMARY.md (Business/Implemented/Files), retorna FINISHED/ISSUES. Reutilizado por quick wins com override de caminho. |
-| `yasdd-verifier` | Revisão multi-track somente pesquisa + um **gate de testes verdes** (roda lint/typecheck/tests antes das tracks). Reutilizado por quick wins com override mais leve de uma única track. |
+| `yasdd-verifier` | UMA revisão a nível de feature somente pesquisa + um **gate de testes verdes** (roda lint/typecheck/tests uma vez por feature, sobre todos os arquivos alterados). Reutilizado por quick wins com override mais leve de uma única track. |
 | `yasdd-goback` | Atualiza uma feature implementada com um novo spec. |
 | `yasdd-doubt` | Explica uma feature (somente leitura). |
 | `yasdd-init` | Cria o `.yasdd/` e a config. |
@@ -92,7 +94,7 @@ Três ideias centrais fazem o yasdd funcionar:
 1. Rode `/yasdd-init` uma vez no seu projeto (cria `.yasdd/`, `config.yml`, `PROJECT-STATE.md` e atualiza `AGENTS.md`).
 2. Rode `/yasdd` e responda às perguntas em lote sobre sua feature.
 3. A pipeline cria `DISCUSS.md → DESIGN.md → specs/ → STATE.md`, e depois oferece para implementar.
-4. Os specs são implementados sequencialmente: implementador → verificador → (corrigir → reverificar, até 3×).
+4. Os specs são implementados sequencialmente (implementador por spec), depois UMA verificação a nível de feature roda sobre a feature inteira (corrigir → reverificar, até 3×).
 5. Pronto? Um `SUMMARY.md` já cresceu com um bullet por implementação nas seções `## Business` (linguagem de PM), `## Implemented` (arquitetura) e `## Files` (arquivos alterados); o `PROJECT-STATE.md` é atualizado.
 
 ## Configuração

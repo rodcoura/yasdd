@@ -6,7 +6,7 @@ description: Implements ONE spec to completion: scoped reads, code + minimal tes
 
 Input: feature slug + spec file path + config values (`autoMode`, `maxParallelism`, `maxSpecs`) passed in the subagent prompt. Read the spec first. Do NOT read the whole repo.
 
-1. Read the spec. Read ONLY files in its `Refs` (scoped reads) — do not scan the whole repo.
+1. Read the spec. The spec is **self-sufficient** — its `Data` and `Interfaces` sections carry the concrete shapes/signatures needed for implementation. Read ONLY files in its `Refs` (scoped reads) — do not scan the whole repo. Do NOT read `DESIGN.md` or `DISCUSS.md`; if the spec looks incomplete (missing shapes/signatures needed to implement), return `ISSUES` (step 7) rather than reaching for DESIGN.md.
 2. Implement so every Rule holds and every Scenario is handled (incl. all error/edge responses).
 3. Write minimal tests, one assertion path per Acceptance case (covers the happy path + each Scenario).
 4. Run lint/typecheck/tests (detect commands from package.json scripts, AGENTS.md, Makefile, etc.).
@@ -30,6 +30,7 @@ Input: feature slug + spec file path + config values (`autoMode`, `maxParallelis
 
 ## Rules
 - Implement exactly ONE spec per invocation; never parallel specs.
+- The spec is self-sufficient: do NOT read `DESIGN.md` or `DISCUSS.md`. If shapes/signatures are missing, return `ISSUES` instead of guessing or reading DESIGN.
 - No comments unless asked. Follow repo conventions.
 - If checks fail, fix within this invocation and re-run until green (or report a blocker).
 - Keep changes scoped to what the spec requires.

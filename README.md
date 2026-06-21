@@ -39,7 +39,7 @@ It is not source code. There is no build system. Everything lives in `commands/`
 
 ## How it works
 
-Every feature flows through a 6-step pipeline:
+Every feature flows through a 7-step pipeline:
 
 ```
 0. config          read .yasdd/config.yml
@@ -47,15 +47,17 @@ Every feature flows through a 6-step pipeline:
 2. DESIGN          pragmatic design from the discussion          → DESIGN.md
 3. SPECS           decompose the design into 1..maxSpecs specs     → specs/*.md + STATE.md
 4. PLAN            pick which specs to implement now (or all in autoMode)
-5. IMPLEMENT LOOP  per spec, sequential: implementer → verifier → re-loop (cap 3)
-6. WRAP UP         update project state
+5. IMPLEMENT LOOP  per spec, sequential: implementer → mark done (no per-spec verify)
+6. FINAL VERIFY    ONE feature-level review + tests-green gate over the whole diff (cap 3 rounds)
+7. WRAP UP         update project state
 ```
 
 Three core ideas make yasdd work:
 
-- **Lean specs**: each spec is a single page (Refs / Goal / I/O / Rules / Scenarios / **Acceptance** / Out of scope). No prose padding.
+- **Lean, self-sufficient specs**: each spec is a single page (Refs / Goal / I/O / Data / Interfaces / Rules / Scenarios / **Acceptance** / Out of scope) — it carries the concrete data shapes and interface signatures needed to implement it, so the implementer never needs DESIGN.md. No prose padding.
 - **Acceptance = Given/When/Then**: the happy path + each Scenario, each checkable by a test. This makes the "functioning spec" rule verifiable instead of self-reported.
-- **FINISHED/ISSUES protocol**: the implementer ends its output with a status token. The orchestrator parses it: `FINISHED` → verify; `ISSUES` → surface to the user (or, in autoMode, mark the spec blocked with `- [~]` and continue).
+- **One feature-level verify**: instead of a verifier per spec, a single verifier runs after all specs are implemented — it runs the tests-green gate once across all changed files and reviews the whole feature diff for conformance + code review, then attributes findings to specs for routing. Lower token usage, shared context.
+- **FINISHED/ISSUES protocol**: the implementer ends its output with a status token. The orchestrator parses it: `FINISHED` → mark done; `ISSUES` → surface to the user (or, in autoMode, mark the spec blocked with `- [~]` and continue).
 
 ## Commands
 
@@ -81,7 +83,7 @@ Three core ideas make yasdd work:
 | `yasdd-specs` | Decomposes DESIGN into specs; carries NFRs into spec Rules. |
 | `yasdd-quick-spec` | Fuses design + one lean spec for a quick win; writes `.yasdd/quick-wins/<slug>/SPEC.md`. |
 | `yasdd-implementer` | Implements ONE spec: scoped reads, code + minimal tests, conformance table, increments SUMMARY.md (Business/Implemented/Files), returns FINISHED/ISSUES. Reused by quick wins with a path override. |
-| `yasdd-verifier` | Multi-track research-only review + a **tests-green gate** (runs lint/typecheck/tests before tracks). Reused by quick wins with a lighter, single-track override. |
+| `yasdd-verifier` | ONE feature-level research-only review + a **tests-green gate** (runs lint/typecheck/tests once per feature, across all changed files). Reused by quick wins with a lighter, single-track override. |
 | `yasdd-goback` | Updates an implemented feature with one new spec. |
 | `yasdd-doubt` | Explains a feature (read-only). |
 | `yasdd-init` | Scaffolds `.yasdd/` and config. |
@@ -92,7 +94,7 @@ Three core ideas make yasdd work:
 1. Run `/yasdd-init` once in your project (creates `.yasdd/`, `config.yml`, `PROJECT-STATE.md`, and updates `AGENTS.md`).
 2. Run `/yasdd` and answer the batched questions about your feature.
 3. The pipeline authors `DISCUSS.md → DESIGN.md → specs/ → STATE.md`, then offers to implement.
-4. Specs are implemented sequentially: implementer → verifier → (fix → re-verify, up to 3×).
+4. Specs are implemented sequentially (implementer per spec), then ONE feature-level verify runs over the whole feature (fix → re-verify, up to 3×).
 5. Done? `SUMMARY.md` has grown with one bullet per implementation across `## Business` (PM language), `## Implemented` (architecture), and `## Files` (changed files); `PROJECT-STATE.md` is updated.
 
 ## Configuration

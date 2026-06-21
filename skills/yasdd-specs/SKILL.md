@@ -13,6 +13,8 @@ Input: feature slug. Read `.yasdd/features/<slug>/DESIGN.md`.
    Refs: <file paths + symbols reused/changed>
    Goal: <1-2 sentences: what & why>
    I/O: <inputs/outputs as references + deltas>
+   Data: <new/changed shapes (field-level: entity/field/type); deltas only; reference existing types>
+   Interfaces: <function signatures / endpoints — full signatures (name/params/return), deltas only>
    Rules: <invariants that must always hold>
    Scenarios: <edge + error cases only: "when X -> Y">
    Acceptance: <Given/When/Then, one per key case: the spec's happy path (proves the system works standalone per the functioning-spec rule) + one per Scenario; each must be checkable by a test>
@@ -51,12 +53,12 @@ When the feature is done, the orchestrator appends a SUMMARY link to the row:
 ```
 
 ## Rules
-- Each spec independently implementable (clear I/O + Rules + Scenarios).
+- Each spec independently implementable (clear I/O + Data + Interfaces + Rules + Scenarios). The spec is **self-sufficient**: the implementer must not need DESIGN.md or DISCUSS.md to implement it.
 - **Functioning spec**: after implementing a spec (given prior specs), the system works and that spec's goal is met on its own. No spec leaves the system half-built expecting a later spec to make it usable.
-- **No overlap**: each Rule/Scenario/Interface delta belongs to exactly ONE spec. Cross-spec dependencies are expressed as `Refs` to prior specs' outputs, never duplicated rules. If two specs need the same concern, assign it to one and reference it from the other.
+- **No overlap**: each Rule/Scenario/Interface/Data delta belongs to exactly ONE spec. Cross-spec dependencies are expressed as `Refs` to prior specs' outputs, never duplicated rules. If two specs need the same concern, assign it to one and reference it from the other.
 - Scenarios = edge + error cases only (no happy-path padding). Acceptance = the happy path + each Scenario as Given/When/Then, all checkable by a test. This makes the "functioning spec" rule verifiable, not self-reported.
 - Carry DESIGN Non-functional items into the owning spec's Rules (assign to exactly one spec; reference from others). Never drop NFRs.
-- Reference existing code; never re-declare existing types.
+- Reference existing code; declare only NEW/CHANGED data shapes and interface signatures inline (carried from DESIGN). Never re-declare unchanged existing types.
 - Keep each spec small; split if one tries to cover too much.
 
 ## Pragmatic principles

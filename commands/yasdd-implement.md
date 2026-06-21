@@ -9,4 +9,4 @@ Read `.yasdd/config.yml` once (`autoMode`, `maxParallelism`, and `maxSpecs`; all
 - `autoMode: false` -> list unimplemented specs, ask the user how many/which to implement now (question tool).
 - `autoMode: true` -> implement ALL specs.
 
-Then run the **IMPLEMENT LOOP** (step 5) + **WRAP UP** (step 6) from the `/yasdd` playbook with the `autoMode` rules from step 5. When launching the implementer and verifier subagents, pass the spec path + config values (`autoMode`, `maxParallelism`, `maxSpecs`) and tell them to use those values instead of re-reading `config.yml`.
+Then run the **IMPLEMENT LOOP (step 5)** + **FINAL VERIFY (step 6)** + **WRAP UP (step 7)** from the `/yasdd` playbook with the `autoMode` rules from step 5. When launching the implementer and verifier subagents, pass the spec path(s) + config values (`autoMode`, `maxParallelism`, `maxSpecs`) and tell them to use those values instead of re-reading `config.yml`. The verifier runs ONCE for the whole feature after all chosen specs are implemented (step 6), not per spec.

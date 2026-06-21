@@ -27,6 +27,7 @@ Anticipated specs: <rough count 1 to maxSpecs (default 5) and what each covers> 
 
 ## Rules
 - Reference existing code; never re-describe it. Specify WHAT + constraints, not implementation minutiae.
+- **Concrete Data + Interfaces (self-sufficiency contract):** `Data` and `Interfaces` MUST be concrete enough to quote verbatim into specs — field-level shapes (entity/field/type, NEW and CHANGED) and full signatures (name/params/return), not vague references. Specs carry these forward; the implementer must not need DESIGN.md to resolve a type or signature.
 - Pick the simplest approach that meets the discussion; flag trade-offs only if material.
 - Read only files referenced or needed for accuracy.
 - Material Non-functional items must be carried into the owning spec's Rules (enforced by yasdd-specs).
