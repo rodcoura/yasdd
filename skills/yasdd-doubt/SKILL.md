@@ -8,7 +8,7 @@ Input: feature slug (`$1`). Run in the MAIN session.
 
 ## Process
 1. Read `.yasdd/features/<slug>/SUMMARY.md` and `STATE.md`. Read `.yasdd/config.yml` for `maxParallelism` (default 3).
-2. Optionally launch up to ONE `explore` subagent (fallback `general`; within `maxParallelism`) to inspect the current implementation and confirm entry points (file:line).
+2. Optionally launch up to ONE `yasdd-spy` subagent (fallback `general`; within `maxParallelism`) to inspect the current implementation and confirm entry points (file:line).
 3. Output a concise explanation:
    - What the feature does (2-3 sentences).
    - Key entry points: `file:line — what`.
