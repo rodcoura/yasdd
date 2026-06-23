@@ -1,6 +1,6 @@
 # yasdd
 
-> Yet Another Spec-Driven Development framework — a pragmatic, markdown-only SDD pipeline for AI coding agents.
+> Yell At Specs, Design Directly — a pragmatic, markdown-only pipeline for AI coding agents.
 
 **Languages:** [English](README.md) · [Português (Brasil)](README.pt-br.md) · [中文](README.cn.md)
 
@@ -33,76 +33,73 @@ For a project-local install, repeat the loops with `.agents/` instead of `~/.age
 
 ## What is yasdd?
 
-yasdd is a **spec-driven development framework** made entirely of markdown skills and commands. It gives an AI coding agent a repeatable pipeline to take a vague feature request and turn it into a fully implemented, reviewed feature — without overthinking and without skipping the hard questions.
+yasdd is a **specless design and delivery framework** made entirely of markdown skills and commands. It gives an AI coding agent a repeatable pipeline to take a vague feature request and turn it into a fully implemented, reviewed feature — without overthinking and without skipping the hard questions.
 
 It is not source code. There is no build system. Everything lives in `commands/` (the user-facing playbook commands) and `skills/` (the subagent instructions).
 
 ## How it works
 
-Every feature flows through an 8-step pipeline:
+Every feature flows through a lean pipeline:
 
 ```
-0. config          read .yasdd/config.yml
-1. DISCUSS         grill the user until the feature is gap-free  (main session)  → DISCUSS.md
-2. DESIGN          pragmatic design from the discussion          (main session)  → DESIGN.md
-2b. TESTING        test-architecture handoff                    (main session)  → TESTING.md
-3. SPECS           decompose the design into 1..maxSpecs specs    (main session)  → specs/*.md + STATE.md
-4. PLAN            pick which specs to implement now + compute parallel batches from Refs
-5. IMPLEMENT LOOP  per batch, parallel (up to maxParallelism): code-only implementers → mark done (no gate)
-6. TEST            ONE tester writes unit + e2e tests + runs the gate once over the whole feature
-6b. FIX-LOOP       if bugs: orchestrator writes fix-plan inline → implementer with "run all checks" → re-test (cap 3 rounds)
-7. FINAL VERIFY    ONE feature-level review + tests-green gate (unconditional rerun) over code + tests (cap 3 rounds)
-8. WRAP UP         update project state
+0. config              read .yasdd/config.yml
+0b. CONVENTIONS check  if .yasdd/CONVENTIONS.md absent → architect will seed it
+1. ELICITATION         tiered grilling (core 8 + extended 10 if complex/greenfield)  (main session)  → ELICITATION.md
+2. ARCHITECTURE        components [M#] + parallel batches + testing + rules/cases/acceptance + 10-point self-check  (main session)  → ARCHITECTURE.md + STATE.md
+3. GATE                autoMode? true → proceed; false → ask user
+4. IMPLEMENT LOOP      per batch, parallel (up to maxParallelism): code-only implementers per component [M#] → mark done (no checks)
+5. TEST                ONE tester writes unit + e2e tests + runs checks once (from ARCHITECTURE, inherited from CONVENTIONS.md) over the whole feature
+5b. FIX-LOOP           if bugs: orchestrator writes fix-plan inline → implementer with "run all checks" → re-test (cap 3 rounds)
+6. FINAL VERIFY        ONE feature-level review + checks rerun (unconditional) over code + tests (cap 3 rounds)
+7. WRAP UP             update project state
 ```
 
-DISCUSS/DESIGN/TESTING/SPECS run in the main session reusing loaded codebase context (zero re-exploration); IMPLEMENT/TEST/VERIFY run as isolated subagents with clean contexts.
+ELICITATION and ARCHITECTURE run in the main session reusing loaded codebase context (zero re-exploration); IMPLEMENT/TEST/VERIFY run as isolated subagents with clean contexts.
 
 Five core ideas make yasdd work:
 
-- **Lean, self-sufficient specs**: each spec is a single page (Refs / Goal / I/O / Data / Interfaces / Rules / Scenarios / **Acceptance** / Out of scope) — it carries the concrete data shapes and interface signatures needed to implement it, so the implementer never needs DESIGN.md. No prose padding.
-- **Acceptance = Given/When/Then**: the happy path + each Scenario, each checkable by a test. This makes the "functioning spec" rule verifiable instead of self-reported.
-- **Main-session context reuse**: DESIGN, TESTING, and SPECS run inline in the main session, reusing the codebase context loaded during DISCUSS — no re-exploration subagents, lower token usage.
-- **Parallel implementation via deferred testing**: the implementer is code-only (no tests, no gate) so specs with disjoint file sets can run in parallel batches. The tester writes all tests + runs the gate once after all specs land. The orchestrator computes parallel batches from spec `Refs` + DESIGN's `Components` (AI judgment, inline — no script).
-- **One feature-level verify**: instead of a verifier per spec, a single verifier runs after the TEST phase — it runs the tests-green gate once (unconditional rerun) across all changed files (code + tests) and reviews the whole feature diff for conformance + code review, then attributes findings to specs for routing. Lower token usage, shared context.
-- **FINISHED/ISSUES protocol**: the implementer (and tester) end their output with a status token. The orchestrator parses it: `FINISHED` → mark done; `ISSUES` → surface to the user (or, in autoMode, mark the spec blocked with `- [~]` and continue).
+- **Architecture-level, component-partitioned implementation**: ARCHITECTURE.md absorbs what used to be specs (Rules/Cases/Acceptance with anchors) + testing architecture + parallel batch plan. Implementation is driven by `Components [M#]` — the LLM's natural todo-list building becomes the plan. No specs decomposition step.
+- **Acceptance = Given/When/Then**: the happy path + each Case, each checkable by a test. This makes the "functioning architecture" rule verifiable instead of self-reported.
+- **Main-session context reuse**: ELICITATION and ARCHITECTURE run inline in the main session, reusing the codebase context loaded during elicitation — no re-exploration subagents, lower token usage.
+- **Parallel implementation via deferred testing**: the implementer is code-only (no tests, no checks) so components with disjoint file sets can run in parallel batches (pre-computed in ARCHITECTURE's `Parallel batches` section). The tester writes all tests + runs checks once after all components land. Mid-flight batch update (in-memory) handles unforeseen file conflicts.
+- **One feature-level verify**: instead of a verifier per spec, a single verifier runs after the TEST phase — it runs checks once (unconditional rerun; commands inherited from CONVENTIONS.md via ARCHITECTURE) across all changed files (code + tests) and reviews the whole feature diff for conformance + code review, then attributes findings to components `[M#]` for routing. Lower token usage, shared context.
+- **FINISHED/ISSUES protocol**: the implementer (and tester) end their output with a status token. The orchestrator parses it: `FINISHED` → mark done; `ISSUES` → surface to the user (or, in autoMode, mark the component blocked and continue).
 
 ## Commands
 
 | Command | What it does |
 | --- | --- |
-| `/yasdd` | Start a new feature: discuss → design → specs → state, then offer to implement. |
-| `/yasdd-quick-win` | Start a single-shot quick win: discuss → one fused spec → implementation → light review. |
-| `/yasdd-implement <slug>` | Resume implementing a single feature's specs from its STATE.md. |
-| `/yasdd-continue` | Resume **every** in-progress feature that still has pending specs. |
-| `/yasdd-status [slug]` | Print project + feature spec status. |
-| `/yasdd-goback <slug>` | Update an already-implemented feature by writing ONE new spec. |
+| `/yasdd` | Start a new feature: elicitation → architecture (with self-check + batches + testing) → gate → implement by component → test → verify. |
+| `/yasdd-quick-win` | Start a single-shot quick win: elicitation → one fused architecture → implementation → light review. |
+| `/yasdd-implement <slug>` | Resume implementing a single feature's components from its STATE.md. |
+| `/yasdd-continue` | Resume **every** in-progress feature that still has pending components. |
+| `/yasdd-status [slug]` | Print project + feature component status. |
+| `/yasdd-goback <slug>` | Update an already-implemented feature by writing ONE new CHANGES/NN delta. |
 | `/yasdd-doubt <slug>` | Explain an implemented feature concisely (read-only). |
 | `/yasdd-init` | Initialize yasdd for a project (scaffolding + AGENTS.md). |
-| `/yasdd-clear` | Remove all features and reset PROJECT-STATE.md (destructive). |
+| `/yasdd-clear` | Remove all features, quick-wins, CHANGES, and CONVENTIONS.md; reset PROJECT-STATE.md (destructive). |
 
 ## Skills (phases & subagents)
 
 | Skill | Role |
 | --- | --- |
-| `yasdd-discuss` | Batched elicitation; writes DISCUSS.md. (main session) |
-| `yasdd-quick-discuss` | Quick-win batched elicitation; writes `.yasdd/quick-wins/<slug>/DISCUSS.md`. (main session) |
-| `yasdd-designer` | Writes DESIGN.md; defines components, data, interfaces, risks, **Non-functional** NFRs; partitions specs by module/file boundaries. (main session) |
-| `yasdd-test-design` | Writes TESTING.md (test-architecture handoff) right after DESIGN. (main session) |
-| `yasdd-specs` | Decomposes DESIGN into specs; carries NFRs into spec Rules; each spec's `Refs` declares file scope for parallel batch computation. (main session) |
-| `yasdd-quick-spec` | Fuses design + one lean spec for a quick win; writes `.yasdd/quick-wins/<slug>/SPEC.md`. (main session) |
-| `yasdd-implementer` | Implements ONE spec: scoped reads, **code-only** (no tests, no gate), split conformance table (spec-conformance self-verified; functioning DEFERRED) + changed-files manifest, increments SUMMARY.md, returns FINISHED/ISSUES. (subagent) |
-| `yasdd-tester` | Writes unit + e2e tests after all specs land; reads TESTING.md + conformance tables + manifest; runs the gate once; returns FINISHED + test manifest, or ISSUES with classified findings (test-bug vs impl-bug). (subagent) |
-| `yasdd-verifier` | ONE feature-level research-only review of code **+ tests** + a **tests-green gate** (unconditional rerun; runs lint/typecheck/tests once per feature, across all changed files). (subagent) |
-| `yasdd-goback` | Updates an implemented feature with one new spec. (main session) |
+| `yasdd-elicitation` | Tiered batched elicitation (core 8 + extended 10 if complex/greenfield); greenfield detection → seeds CONVENTIONS.md; Christel & Kang watchlist per round; writes ELICITATION.md. (main session) |
+| `yasdd-quick-elicitation` | Quick-win core-only elicitation (8 sections, no extended); greenfield detection; writes `.yasdd/quick-wins/<slug>/ELICITATION.md`. (main session) |
+| `yasdd-architect` | Writes ARCHITECTURE.md; absorbs Rules/Cases/Acceptance + Testing + Parallel batches; 10-point self-check (cap 3 iterations); token-cost awareness; CONVENTIONS.md inheritance. (main session) |
+| `yasdd-quick-architect` | Fuses design + one lean architecture for a quick win; simplified format (no Components/batches/[M#]); Testing inherits CONVENTIONS.md; writes `.yasdd/quick-wins/<slug>/ARCHITECTURE.md`. (main session) |
+| `yasdd-implementer` | Implements ONE component `[M#]`: scoped reads, **code-only** (no tests, no checks), split conformance table (architecture-conformance self-verified; functioning DEFERRED) + changed-files manifest, increments SUMMARY.md, returns FINISHED/ISSUES. (subagent) |
+| `yasdd-tester` | Writes unit + e2e tests after all components land; reads ARCHITECTURE.md (Testing + Acceptance `[A#]`); runs checks once (commands inherited from CONVENTIONS.md via ARCHITECTURE); returns FINISHED + test manifest, or ISSUES with classified findings (test-bug vs impl-bug, attributed to components `[M#]`). (subagent) |
+| `yasdd-verifier` | ONE feature-level research-only review of code **+ tests** + a **checks rerun** (unconditional; runs lint/typecheck/tests once per feature, across all changed files; commands inherited from CONVENTIONS.md via ARCHITECTURE). Attributes findings to components `[M#]`. (subagent) |
+| `yasdd-goback` | Updates an implemented feature with one CHANGES/NN delta in ARCHITECTURE format. (main session) |
 | `yasdd-doubt` | Explains a feature (read-only). (main session) |
-| `yasdd-init` | Scaffolds `.yasdd/` and config. (main session) |
-| `yasdd-clear` | Wipes features (keeps config). (main session) |
+| `yasdd-init` | Scaffolds `.yasdd/` and config (no maxSpecs); does NOT create CONVENTIONS.md. (main session) |
+| `yasdd-clear` | Wipes features, quick-wins, CHANGES, and CONVENTIONS.md (keeps config). (main session) |
 
 ### yasdd-spy (codebase exploration agent)
 
-yasdd ships a dedicated **lightweight** subagent, `yasdd-spy`, for all codebase exploration and feature-tracing tasks. It is configured with a fast, inexpensive model (e.g. `anthropic/claude-haiku-4-5`) so that DISCUSS, GOBACK, and VERIFY phases can launch multiple parallel spies without significant token cost.
+yasdd ships a dedicated **lightweight** subagent, `yasdd-spy`, for all codebase exploration and feature-tracing tasks. It is configured with a fast, inexpensive model (e.g. `anthropic/claude-haiku-4-5`) so that ELICITATION, GOBACK, and VERIFY phases can launch multiple parallel spies without significant token cost.
 
-**Developers should use `yasdd-spy`** (not the harness's generic `explore` agent) whenever a skill or command calls for codebase investigation. The spy traces feature implementations from entry points to data storage, returning `file:line` references and essential-files lists.
+**Developers should use `yasdd-spy`** (not the harness's generic `explore` agent) whenever a skill or command calls for codebase investigation. The spy traces feature implementations from entry points to data storage, returning `file:line` references and essential-files lists. It also detects **greenfield** repos (no source files) and returns a greenfield signal so the elicitation skill can seed `CONVENTIONS.md`.
 
 To use a different lightweight model, edit `agents/yasdd-spy.md` and change the `model:` frontmatter field.
 
@@ -110,8 +107,8 @@ To use a different lightweight model, edit `agents/yasdd-spy.md` and change the 
 
 1. Run `/yasdd-init` once in your project (creates `.yasdd/`, `config.yml`, `PROJECT-STATE.md`, and updates `AGENTS.md`).
 2. Run `/yasdd` and answer the batched questions about your feature.
-3. The pipeline authors `DISCUSS.md → DESIGN.md → TESTING.md → specs/ → STATE.md` (all in the main session), then offers to implement.
-4. The orchestrator computes parallel batches from spec `Refs` + DESIGN's `Components`; implementers run code-only in parallel per batch (up to `maxParallelism`). Then ONE tester writes all tests + runs the gate once. Then ONE feature-level verify runs over code + tests (fix → re-test/re-verify, up to 3× each).
+3. The pipeline authors `ELICITATION.md → ARCHITECTURE.md → STATE.md` (all in the main session), then asks to proceed (unless `autoMode: true`).
+4. The orchestrator reads ARCHITECTURE's `Parallel batches`; implementers run code-only in parallel per batch (up to `maxParallelism`), one per component `[M#]`. Then ONE tester writes all tests + runs checks once (commands inherited from CONVENTIONS.md via ARCHITECTURE). Then ONE feature-level verify runs over code + tests (fix → re-test/re-verify, up to 3× each).
 5. Done? `SUMMARY.md` has grown with one bullet per implementation across `## Business` (PM language), `## Implemented` (architecture), and `## Files` (changed files); `PROJECT-STATE.md` is updated.
 
 ## Configuration
@@ -119,46 +116,91 @@ To use a different lightweight model, edit `agents/yasdd-spy.md` and change the 
 `.yasdd/config.yml`:
 
 ```yaml
-autoMode: false      # true = implement all specs without asking
-maxParallelism: 3    # cap on parallel subagent calls per step
-maxSpecs: 5          # cap on specs generated from one DESIGN
-gate:                # detected once at init; reused by tester/verifier/fix-loop
-  testCmd: ""        # e.g. "npm test"; empty = detect at runtime
-  lintCmd: ""        # e.g. "npm run lint"; empty = detect at runtime
-  typecheckCmd: ""   # e.g. "npm run typecheck"; empty = detect at runtime
+autoMode: false      # true = architecture → straight to implementation (no gate pause)
+maxParallelism: 3    # cap on parallel subagent calls per step + batch size
 ```
+
+`maxSpecs` has been removed — the architect decides component count naturally. A token-cost awareness note in the architect skill advises merging if >6 components, but this is advisory, not enforced.
+
+Check commands (lint, typecheck, test) are **project-wide**, captured once in `.yasdd/CONVENTIONS.md` (seeded by elicitation on greenfield, or by the architect on brownfield first feature). Every feature's ARCHITECTURE.md inherits them. This eliminates per-feature test-framework rediscovery.
+
+## CONVENTIONS.md
+
+A project-wide file at `.yasdd/CONVENTIONS.md` captures the project's technical conventions **once** so every feature's ARCHITECTURE.md inherits them instead of re-discovering:
+
+```md
+# Project Conventions
+
+## Tech stack
+Language: <e.g., TypeScript 5.4>
+Framework: <e.g., Express 4, Next.js 14, FastAPI 0.110>
+Runtime: <e.g., Node 20, Python 3.12>
+
+## Test
+Framework: <e.g., Vitest 1.6, pytest 8.2>
+Runner cmd: <e.g., npm test, pytest>
+Test location: <e.g., src/**/*.test.ts, tests/**/test_*.py>
+
+## Quality gates
+Lint cmd: <e.g., npm run lint, ruff check>
+Typecheck cmd: <e.g., npm run typecheck, tsc --noEmit, mypy>
+
+## Directory structure
+Source: <e.g., src/>
+Tests: <e.g., src/ (colocated), tests/ (separate)>
+Config: <e.g., .env, config/>
+```
+
+| Scenario | When CONVENTIONS.md is created |
+|----------|--------------------------------|
+| **Greenfield (first feature)** | Elicitation's "Technical environment decision" sub-step seeds it before architecture runs |
+| **Brownfield (no CONVENTIONS.md yet)** | Architect detects from `package.json`/`Makefile`/`AGENTS.md` on first feature, writes it so subsequent features inherit |
+| **Already exists** | Architect inherits (never re-decides); elicitation skips technical-environment sub-step |
+
+`/yasdd-init` does NOT create CONVENTIONS.md — it's seeded by elicitation/architect on first feature, not at init time (init doesn't know the tech stack yet).
 
 ## What lives where
 
 ```
 .yasdd/
   config.yml
-  PROJECT-STATE.md                 # all features at a glance
+  CONVENTIONS.md                     # project-wide tech conventions (seeded once, inherited by all features)
+  PROJECT-STATE.md                   # all features at a glance
   features/<slug>/
-    DISCUSS.md
-    DESIGN.md
-    TESTING.md                     # test-architecture handoff (framework, locations, fixtures, acceptance mapping)
-    MANIFEST.md                    # lightweight spec/file/dependency index for parallel batch computation
-    STATE.md                        # spec checklist: [ ] [x] [~]
-    SUMMARY.md                      # Business / Implemented / Files (appended per implementation)
-    specs/NN-<spec-slug>.md
+    ELICITATION.md                   # tiered: core 8 + extended 10 (if complex/greenfield)
+    ARCHITECTURE.md                  # components [M#] + batches + testing + rules/cases/acceptance (absorbs old DESIGN + TESTING + specs)
+    STATE.md                         # per-component impl/test/verify status
+    SUMMARY.md                       # Business / Implemented / Files (appended per implementation)
+    CHANGES/NN-<change-slug>.md      # goback deltas in ARCHITECTURE format
   quick-wins/<slug>/
-    DISCUSS.md
-    SPEC.md                         # fused design + one lean spec
-    SUMMARY.md                      # Business / Implemented / Files
+    ELICITATION.md                   # core-only (8 sections)
+    ARCHITECTURE.md                  # simplified format (no Components/batches/[M#])
+    SUMMARY.md                       # Business / Implemented / Files
 ```
 
-Spec status markers: `- [ ]` unimplemented · `- [x]` done · `- [~]` blocked.
+Component status markers in STATE.md: `- [ ]` not started · `- [~]` blocked (failed test or verify) · `- [x]` fully done (impl + test + verify). Each component has `impl`/`test`/`verify` sub-markers for precise fix-loop routing.
 
 ### Quick wins
 
 `/yasdd-quick-win` collapses the full SDD pipeline into a single-shot, stateless flow:
 
 ```
-DISCUSS → SPEC (fused design + spec, main session) → IMPLEMENTATION (code-only) → TEST → LIGHT CODE REVIEW
+ELICITATION (core-only) → ARCHITECTURE (simplified, main session) → IMPLEMENTATION (code-only) → TEST → LIGHT CODE REVIEW
 ```
 
-- One `SPEC.md` per quick win — no `specs/` directory.
-- No `TESTING.md` (single spec — the tester derives test architecture from the project's existing framework).
+- One `ARCHITECTURE.md` per quick win — no `specs/` directory, no `Components` with `[M#]`, no `Parallel batches`.
 - No `STATE.md`; inspect the folder directly.
 - No `PROJECT-STATE.md` updates.
+- Testing section inherits from CONVENTIONS.md (or detects at runtime if absent).
+
+## Greenfield support
+
+yasdd detects greenfield repos (no source files) via `yasdd-spy` and handles them gracefully:
+
+- `yasdd-spy` returns "greenfield — no existing source files found" instead of failing.
+- The elicitation skill injects a "Technical environment decision" sub-step (language, framework, test runner, lint, directory structure).
+- These decisions seed `CONVENTIONS.md` before architecture runs.
+- The first feature is treated as **architecture-defining** — the architect writes the foundational structure (directory layout, shared utilities, base configuration).
+- Subsequent features inherit `CONVENTIONS.md` — no re-deciding.
+
+This does NOT add a separate scaffolding step — it folds naturally into the existing elicitation → architecture flow.
