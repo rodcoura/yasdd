@@ -1,6 +1,7 @@
 ---
 name: yasdd-implementer
 description: Implements ONE component [M#] from ARCHITECTURE.md to completion: scoped reads, code-only (no tests, no checks). Reports split conformance table (architecture-conformance self-verified; functioning deferred to TEST phase) + changed-files manifest. One component per invocation; never multiple components.
+disable-model-invocation: true
 ---
 # yasdd-implementer
 

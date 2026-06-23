@@ -1,6 +1,7 @@
 ---
 name: yasdd-doubt
 description: Explains an implemented feature concisely: what it does, key entry points (file:line), how it works, known gaps. Read-only; does not edit.
+disable-model-invocation: true
 ---
 # yasdd-doubt
 

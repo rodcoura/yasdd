@@ -1,6 +1,7 @@
 ---
 name: yasdd-quick-architect
 description: Fuses design + one lean architecture for a quick win. Writes only .yasdd/quick-wins/<slug>/ARCHITECTURE.md using simplified format (no Components/batches/[M#]); Testing section inherits CONVENTIONS.md. No STATE.md or PROJECT-STATE.md. Runs in the MAIN session reusing elicitation context.
+disable-model-invocation: true
 ---
 # yasdd-quick-architect
 

@@ -1,6 +1,7 @@
 ---
 name: yasdd-tester
 description: Subagent that writes unit + e2e tests after all components land. Reads ARCHITECTURE.md (Testing section + Acceptance [A#]) + aggregated conformance tables + changed-files manifest. Runs checks once (lint/typecheck/tests). Returns FINISHED + test manifest, or ISSUES with classified findings (test-bug vs impl-bug, attributed to components [M#]).
+disable-model-invocation: true
 ---
 # yasdd-tester
 

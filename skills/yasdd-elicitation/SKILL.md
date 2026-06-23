@@ -1,6 +1,7 @@
 ---
 name: yasdd-elicitation
 description: Tiered elicitation for a new feature. Runs in the MAIN session with the user. Asks all open questions in batches (with recommended answers, codebase-first) until gap-free understanding, then persists to .yasdd/features/<slug>/ELICITATION.md. Core 8 sections always; extended 10 if complex/greenfield.
+disable-model-invocation: true
 ---
 # yasdd-elicitation
 

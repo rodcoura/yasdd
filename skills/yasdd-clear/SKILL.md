@@ -1,6 +1,7 @@
 ---
 name: yasdd-clear
 description: Clears all yasdd features and resets PROJECT-STATE.md. Also removes CONVENTIONS.md.
+disable-model-invocation: true
 ---
 # yasdd-clear
 
