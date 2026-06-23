@@ -8,11 +8,11 @@
 
 ## Installation
 
-yasdd is pure markdown — no build step, no dependencies. Place `skills/`, `commands/`, and `agents/` where your agent harness reads them.
+yasdd is pure markdown — no build step, no dependencies. Place `skills/` and `agents/` where your agent harness reads them.
 
 ### Recommended: installer script
 
-The `install-to-agents.sh` script copies skills, agents, commands, and prompts to the locations each tool actually scans:
+The `install-to-agents.sh` script copies skills and agents to the locations each tool actually scans:
 
 ```bash
 # from a repo checkout
@@ -29,17 +29,17 @@ Targets:
 
 | Directory | Contents |
 | --- | --- |
-| `~/.agents/` | skills, agents, commands, prompts (cross-tool mirror) |
-| `~/.config/opencode/` | agents, commands (opencode native) |
-| `~/.claude/` | agents, commands, skills (Claude Code native) |
+| `~/.agents/` | skills, agents (cross-tool mirror) |
+| `~/.config/opencode/` | agents (opencode native) |
+| `~/.claude/` | agents, skills (Claude Code native) |
 
 ### Manual: symlinks
 
 Pick one location:
 
-- **Global (all projects):** `~/.agents/` — gives you `~/.agents/skills/yasdd-*/SKILL.md`, `~/.agents/commands/yasdd*.md`, and `~/.agents/agents/yasdd-spy.md`.
-- **Project-local (one repo):** `.agents/` in the project root — `.agents/skills/...`, `.agents/commands/...`, `.agents/agents/...`.
-- **Custom:** any folder your agent harness loads skills/commands from.
+- **Global (all projects):** `~/.agents/` — gives you `~/.agents/skills/yasdd-*/SKILL.md` and `~/.agents/agents/yasdd-spy.md`.
+- **Project-local (one repo):** `.agents/` in the project root — `.agents/skills/...`, `.agents/agents/...`.
+- **Custom:** any folder your agent harness loads skills from.
 
 Symlink each directory (safe if the folder already holds other skills):
 
@@ -48,27 +48,23 @@ Symlink each directory (safe if the folder already holds other skills):
 git clone https://github.com/rodcoura/yasdd ~/projects/yasdd
 
 # global install
-mkdir -p ~/.agents/skills ~/.agents/commands ~/.agents/agents ~/.agents/prompts
+mkdir -p ~/.agents/skills ~/.agents/agents
 for s in ~/projects/yasdd/skills/*; do ln -sf "$s" ~/.agents/skills/; done
-for c in ~/projects/yasdd/commands/*.md; do ln -sf "$c" ~/.agents/commands/; done
 for a in ~/projects/yasdd/agents/*.md; do ln -sf "$a" ~/.agents/agents/; done
-for p in ~/projects/yasdd/prompts/*.md; do ln -sf "$p" ~/.agents/prompts/; done
 ```
 
-For a project-local install, repeat the loops with `.agents/` instead of `~/.agents/`. Then run `/yasdd-init` in your project to scaffold `.yasdd/` and update `AGENTS.md`.
+For a project-local install, repeat the loops with `.agents/` instead of `~/.agents/`. Then load the `yasdd-init` skill in your project to scaffold `.yasdd/` and update `AGENTS.md`.
 
 ---
 
 ## What is yasdd?
 
-yasdd is a **specless design and delivery framework** made entirely of markdown skills and commands. It gives an AI coding agent a repeatable pipeline to take a vague feature request and turn it into a fully implemented, reviewed feature — without overthinking and without skipping the hard questions.
+yasdd is a **specless design and delivery framework** made entirely of markdown skills. It gives an AI coding agent a repeatable pipeline to take a vague feature request and turn it into a fully implemented, reviewed feature — without overthinking and without skipping the hard questions.
 
-It is not source code. There is no build system. Everything lives in four directories:
+It is not source code. There is no build system. Everything lives in two directories:
 
-- `commands/` — user-facing slash commands (the orchestrator playbooks).
-- `skills/` — subagent instructions, one folder per skill (`<skill>/SKILL.md`).
+- `skills/` — one folder per skill (`<skill>/SKILL.md`); includes the orchestrator playbooks and subagent instructions.
 - `agents/` — subagent definitions (currently `yasdd-spy.md`, the lightweight codebase explorer).
-- `prompts/` — symlinks mirroring `commands/` for tools that read from a `prompts/` directory instead of `commands/`.
 
 ## How it works
 
@@ -98,23 +94,19 @@ Five core ideas make yasdd work:
 - **One feature-level verify**: instead of a verifier per spec, a single verifier runs after the TEST phase — it runs checks once (unconditional rerun; commands inherited from CONVENTIONS.md via ARCHITECTURE) across all changed files (code + tests) and reviews the whole feature diff for conformance + code review, then attributes findings to components `[M#]` for routing. Lower token usage, shared context.
 - **FINISHED/ISSUES protocol**: the implementer (and tester) end their output with a status token. The orchestrator parses it: `FINISHED` → mark done; `ISSUES` → surface to the user (or, in autoMode, mark the component blocked and continue).
 
-## Commands
+## Skills
 
-| Command | What it does |
+### Orchestrator skills (entry points)
+
+| Skill | What it does |
 | --- | --- |
-| `/yasdd` | Start a new feature: elicitation → architecture (with self-check + batches + testing) → gate → implement by component → test → verify. |
-| `/yasdd-quick-win` | Start a single-shot quick win: elicitation → one fused architecture → implementation → light review. |
-| `/yasdd-implement <slug>` | Resume implementing a single feature's components from its STATE.md. |
-| `/yasdd-continue` | Resume **every** in-progress feature that still has pending components. |
-| `/yasdd-status [slug]` | Print project + feature component status. |
-| `/yasdd-goback <slug>` † | Update an already-implemented feature by writing ONE new CHANGES/NN delta. |
-| `/yasdd-doubt <slug>` † | Explain an implemented feature concisely (read-only). |
-| `/yasdd-init` † | Initialize yasdd for a project (scaffolding + AGENTS.md). |
-| `/yasdd-clear` † | Remove all features, quick-wins, CHANGES, and CONVENTIONS.md; reset PROJECT-STATE.md (destructive). |
+| `yasdd-orchestrator` | Start a new feature: elicitation → architecture (with self-check + batches + testing) → gate → implement by component → test → verify. |
+| `yasdd-quick-win` | Start a single-shot quick win: elicitation → one fused architecture → implementation → light review. |
+| `yasdd-implement <slug>` | Resume implementing a single feature's components from its STATE.md. |
+| `yasdd-continue` | Resume **every** in-progress feature from the exact step where it stopped (elicitation, architecture, gate, implement, test, verify, or wrap up). |
+| `yasdd-status [slug]` | Print project + feature component status. |
 
-> † These four have no command wrapper file in `commands/` — they are invoked by loading their skill directly (e.g. via the skill tool, or `Load the skill yasdd-init`). The five commands above them are thin wrappers: each loads its same-named skill (e.g. `/yasdd` loads the `yasdd` skill), which contains the full orchestrator playbook. All skills live in `skills/`.
-
-## Skills (phases & subagents)
+### Phase & subagent skills
 
 | Skill | Role |
 | --- | --- |
@@ -134,14 +126,14 @@ Five core ideas make yasdd work:
 
 yasdd ships a dedicated **lightweight** subagent, `yasdd-spy`, for all codebase exploration and feature-tracing tasks. It is defined in `agents/yasdd-spy.md` (frontmatter: `name`, `description`, `mode: subagent`) and intended to run on a fast, inexpensive model (e.g. `anthropic/claude-haiku-4-5`) so that ELICITATION, GOBACK, and VERIFY phases can launch multiple parallel spies without significant token cost.
 
-**Developers should use `yasdd-spy`** (not the harness's generic `explore` agent) whenever a skill or command calls for codebase investigation. The spy traces feature implementations from entry points to data storage, returning `file:line` references and essential-files lists. It also detects **greenfield** repos (no source files) and returns a greenfield signal so the elicitation skill can seed `CONVENTIONS.md`.
+**Developers should use `yasdd-spy`** (not the harness's generic `explore` agent) whenever a skill calls for codebase investigation. The spy traces feature implementations from entry points to data storage, returning `file:line` references and essential-files lists. It also detects **greenfield** repos (no source files) and returns a greenfield signal so the elicitation skill can seed `CONVENTIONS.md`.
 
 To configure a specific model, edit `agents/yasdd-spy.md` and add or change a `model:` frontmatter field (support depends on your agent harness).
 
 ## Quick start
 
-1. Run `/yasdd-init` once in your project (creates `.yasdd/`, `config.yml`, `PROJECT-STATE.md`, and updates `AGENTS.md`).
-2. Run `/yasdd` and answer the batched questions about your feature.
+1. Load the `yasdd-init` skill once in your project (creates `.yasdd/`, `config.yml`, `PROJECT-STATE.md`, and updates `AGENTS.md`).
+2. Load the `yasdd-orchestrator` skill and answer the batched questions about your feature.
 3. The pipeline authors `ELICITATION.md → ARCHITECTURE.md → STATE.md` (all in the main session), then asks to proceed (unless `autoMode: true`).
 4. The orchestrator reads ARCHITECTURE's `Parallel batches`; implementers run code-only in parallel per batch (up to `maxParallelism`), one per component `[M#]`. Then ONE tester writes all tests + runs checks once (commands inherited from CONVENTIONS.md via ARCHITECTURE). Then ONE feature-level verify runs over code + tests (fix → re-test/re-verify, up to 3× each).
 5. Done? `SUMMARY.md` has grown with one bullet per implementation across `## Business` (PM language), `## Implemented` (architecture), and `## Files` (changed files); `PROJECT-STATE.md` is updated.
@@ -190,7 +182,7 @@ Config: <e.g., .env, config/>
 | **Brownfield (no CONVENTIONS.md yet)** | Architect detects from `package.json`/`Makefile`/`AGENTS.md` on first feature, writes it so subsequent features inherit |
 | **Already exists** | Architect inherits (never re-decides); elicitation skips technical-environment sub-step |
 
-`/yasdd-init` does NOT create CONVENTIONS.md — it's seeded by elicitation/architect on first feature, not at init time (init doesn't know the tech stack yet).
+The `yasdd-init` skill does NOT create CONVENTIONS.md — it's seeded by elicitation/architect on first feature, not at init time (init doesn't know the tech stack yet).
 
 ## What lives where
 
@@ -200,12 +192,14 @@ Config: <e.g., .env, config/>
   CONVENTIONS.md                     # project-wide tech conventions (seeded once, inherited by all features)
   PROJECT-STATE.md                   # all features at a glance
   features/<slug>/
+    REQUEST.md                       # the original user request (raw $ARGUMENTS)
     ELICITATION.md                   # tiered: core 8 + extended 10 (if complex/greenfield)
     ARCHITECTURE.md                  # components [M#] + batches + testing + rules/cases/acceptance
     STATE.md                         # per-component impl/test/verify status
     SUMMARY.md                       # Business / Implemented / Files (appended per implementation)
     CHANGES/NN-<change-slug>.md      # goback deltas in ARCHITECTURE format
   quick-wins/<slug>/
+    REQUEST.md                       # the original user request (raw $ARGUMENTS)
     ELICITATION.md                   # core-only (8 sections)
     ARCHITECTURE.md                  # simplified format (no Components/batches/[M#])
     SUMMARY.md                       # Business / Implemented / Files
@@ -215,7 +209,7 @@ Component status markers in STATE.md: `- [ ]` not started · `- [~]` blocked (fa
 
 ### Quick wins
 
-`/yasdd-quick-win` collapses the full SDD pipeline into a single-shot, stateless flow:
+The `yasdd-quick-win` skill collapses the full SDD pipeline into a single-shot, stateless flow:
 
 ```
 ELICITATION (core-only) → ARCHITECTURE (simplified, main session) → IMPLEMENTATION (code-only) → TEST → LIGHT CODE REVIEW

@@ -8,7 +8,7 @@ disable-model-invocation: true
 You run in the MAIN session with the user. Turn a vague quick-win request into a gap-free understanding before a single fused architecture is written.
 
 ## Process
-1. Confirm the kebab-case slug for the quick win. Create `.yasdd/` (if missing), `.yasdd/quick-wins/<slug>/`, and `ELICITATION.md` if missing. Read `.yasdd/config.yml` for `maxParallelism`; if missing, create it with `autoMode: false`, `maxParallelism: 3`.
+1. Confirm the kebab-case slug for the quick win. Create `.yasdd/` (if missing), `.yasdd/quick-wins/<slug>/`, and `ELICITATION.md` if missing. Read `.yasdd/config.yml` for `autoMode` and `maxParallelism`; if missing, use defaults `autoMode: false`, `maxParallelism: 3` (do NOT create config.yml — only `yasdd-orchestrator`, `yasdd-init`, `yasdd-status`, and `yasdd-quick-win` create it).
 2. **Initial investigation:** launch up to `maxParallelism` of `yasdd-spy` subagents in parallel. Goal: identify the FULL initial question set covering every aspect/branch needed to implement the quick win.
    - **Greenfield detection:** if yasdd-spy returns "greenfield — no existing source files found", inject a "Technical environment decision" sub-step (language, framework, test runner, lint, directory structure). If `.yasdd/CONVENTIONS.md` already exists, inherit it. If not, seed it from these decisions (see step 7).
 3. **Ask ALL initial questions at once (ONE batch):** present the complete list in a single `question` tool call (array of question objects), each with a clearly-marked RECOMMENDED answer so the user can accept/reject/refine. Explicitly NOT one-at-a-time. Wait for all answers.

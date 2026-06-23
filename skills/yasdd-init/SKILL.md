@@ -22,7 +22,7 @@ Run in the MAIN session. Initialize yasdd for this project.
    ## Features
    ```
 4. Update/create `AGENTS.md` in the project root with a brief `## yasdd` section:
-   - yasdd workflow pointer (`.yasdd/`, `/yasdd`, `/yasdd-quick-win`, `/yasdd-implement`, `/yasdd-continue`, `/yasdd-init`, `/yasdd-goback`, `/yasdd-clear`, `/yasdd-doubt`, `/yasdd-status`).
+   - yasdd workflow pointer (`.yasdd/`, skills: `yasdd-orchestrator`, `yasdd-quick-win`, `yasdd-implement`, `yasdd-continue`, `yasdd-init`, `yasdd-goback`, `yasdd-clear`, `yasdd-doubt`, `yasdd-status`).
    - Scoped reads, no overthinking, pragmatic decisions.
 5. **Do NOT create `CONVENTIONS.md`** — it is seeded by the elicitation skill (greenfield) or the architect skill (brownfield) on the first feature, then inherited by all subsequent features.
 

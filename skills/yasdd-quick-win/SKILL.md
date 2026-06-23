@@ -7,12 +7,13 @@ disable-model-invocation: true
 
 Start a lightweight, single-shot SDD flow for a small, self-contained change. Results live in `.yasdd/quick-wins/<slug>/` with only `ELICITATION.md`, `ARCHITECTURE.md`, and `SUMMARY.md`.
 
-You are the orchestrator. Read `.yasdd/config.yml` once at the start (create it with `autoMode: false`, `maxParallelism: 3` if missing). `autoMode` drives the gate at step 3; `maxParallelism` caps parallel subagent calls in elicitation and the verifier track.
+You are the orchestrator. Read `.yasdd/config.yml` once at the start (create it with `autoMode: false`, `maxParallelism: 3` if missing — you are one of the few skills allowed to create it; the others are `yasdd-orchestrator`, `yasdd-init`, and `yasdd-status`). `autoMode` drives the gate at step 3; `maxParallelism` caps parallel subagent calls in elicitation and the verifier track.
 
 Subagents are launched ONLY for the IMPLEMENT (step 4), TEST (step 5), and VERIFY (step 6) phases. ARCHITECTURE (step 2) runs in the MAIN session, reusing the codebase context loaded during elicitation — zero re-exploration.
 
 ## Pipeline
 0. Read `.yasdd/config.yml` (create with `autoMode: false`, `maxParallelism: 3` if missing) and keep its values in context.
+0a. **Capture the request:** once the quick-win slug is confirmed (the first action of ELICITATION in step 1), write the original `$ARGUMENTS` (the user's request, verbatim) to `.yasdd/quick-wins/<slug>/REQUEST.md`. This preserves the raw user request for later reference. Skip the write if `$ARGUMENTS` is empty.
 1. **ELICITATION** (main session, skill `yasdd-quick-elicitation`): run core-only batched elicitation (8 sections, no extended) until gaps closed. The skill may launch up to `maxParallelism` `yasdd-spy` subagents in parallel for codebase-first investigation. Greenfield detection if quick-win on empty repo; seeds `CONVENTIONS.md` if greenfield. Writes `.yasdd/quick-wins/<slug>/ELICITATION.md`.
 2. **ARCHITECTURE** (main session, skill `yasdd-quick-architect`): reuse elicitation context; load skill `yasdd-quick-architect`, read `.yasdd/quick-wins/<slug>/ELICITATION.md` (already in context), do targeted reads only. Writes `.yasdd/quick-wins/<slug>/ARCHITECTURE.md` using the simplified format (no Components/batches/[M#]). Testing section inherits from CONVENTIONS.md if present; if absent, detects + writes CONVENTIONS.md. Briefly report the outcome to the user.
 3. **GATE**:
@@ -66,5 +67,5 @@ Subagents are launched ONLY for the IMPLEMENT (step 4), TEST (step 5), and VERIF
 ## Rules
 - All artifacts live under `.yasdd/quick-wins/<slug>/`. Never write to `.yasdd/features/<slug>/`, `STATE.md`, or `PROJECT-STATE.md`.
 - Handoffs are file references (pass slug/paths, not big text). Stay terse.
-- For commands/skills discovery: if the skill tool does not find a yasdd skill, fall back to reading `~/.agents/skills/<name>/SKILL.md` directly.
+- For skills discovery: if the skill tool does not find a yasdd skill, fall back to reading `~/.agents/skills/<name>/SKILL.md` directly.
 - The implementer/tester/verifier are reused with quick-win overrides so they do not fall back to full-SDD paths or multi-track behavior.

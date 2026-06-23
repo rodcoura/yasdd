@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# yasdd installer — copies skills, agents, commands, prompts to the locations
-# each tool actually scans:
+# yasdd installer — copies skills and agents to the locations each tool
+# actually scans:
 #   ~/.agents/              cross-tool mirror (opencode loads skills via skills.paths)
-#   ~/.config/opencode/     opencode native  (agents, commands)
-#   ~/.claude/              Claude Code native (agents, commands, skills)
+#   ~/.config/opencode/     opencode native  (agents)
+#   ~/.claude/              Claude Code native (agents, skills)
 #
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/rodcoura/yasdd/master/install-to-agents.sh | bash
@@ -25,7 +25,7 @@ cleanup() {
 trap cleanup EXIT
 
 # --- resolve source: local checkout or download tarball ---------------------
-if [ -d "$(pwd)/skills" ] && [ -d "$(pwd)/agents" ] && [ -d "$(pwd)/commands" ] && [ -f "$(pwd)/install-to-agents.sh" ]; then
+if [ -d "$(pwd)/skills" ] && [ -d "$(pwd)/agents" ] && [ -f "$(pwd)/install-to-agents.sh" ]; then
   SRC_DIR="$(pwd)"
 else
   TMP="$(mktemp -d)"
@@ -36,43 +36,46 @@ else
   SRC_DIR="$TMP"
 fi
 
-[ -d "$SRC_DIR/skills" ] && [ -d "$SRC_DIR/agents" ] && [ -d "$SRC_DIR/commands" ] || {
-  echo "✗ source incomplete (skills/agents/commands missing)" >&2
+[ -d "$SRC_DIR/skills" ] && [ -d "$SRC_DIR/agents" ] || {
+  echo "✗ source incomplete (skills/agents missing)" >&2
   exit 1
 }
 
 # --- target directories -----------------------------------------------------
 AGENTS_MIRROR="$HOME/.agents/agents"
 SKILLS_MIRROR="$HOME/.agents/skills"
-COMMANDS_MIRROR="$HOME/.agents/commands"
-PROMPTS_MIRROR="$HOME/.agents/prompts"
 
 OPENCODE_DIR="$HOME/.config/opencode"
 OPENCODE_AGENTS="$OPENCODE_DIR/agents"
-OPENCODE_COMMANDS="$OPENCODE_DIR/commands"
 
 CLAUDE_DIR="$HOME/.claude"
 CLAUDE_AGENTS="$CLAUDE_DIR/agents"
-CLAUDE_COMMANDS="$CLAUDE_DIR/commands"
 CLAUDE_SKILLS="$CLAUDE_DIR/skills"
 
 mkdir -p \
-  "$AGENTS_MIRROR" "$SKILLS_MIRROR" "$COMMANDS_MIRROR" "$PROMPTS_MIRROR" \
-  "$OPENCODE_AGENTS" "$OPENCODE_COMMANDS" \
-  "$CLAUDE_AGENTS" "$CLAUDE_COMMANDS" "$CLAUDE_SKILLS"
+  "$AGENTS_MIRROR" "$SKILLS_MIRROR" \
+  "$OPENCODE_AGENTS" \
+  "$CLAUDE_AGENTS" "$CLAUDE_SKILLS"
 
 # --- remove obsolete skill folders -----------------------------------------
-STALE_SKILLS=(yasdd-designer yasdd-discuss yasdd-specs yasdd-test-design yasdd-quick-discuss yasdd-quick-spec)
+STALE_SKILLS=(yasdd yasdd-designer yasdd-discuss yasdd-specs yasdd-test-design yasdd-quick-discuss yasdd-quick-spec)
 for s in "${STALE_SKILLS[@]}"; do
   for d in "$SKILLS_MIRROR" "$CLAUDE_SKILLS" "$HOME/.config/opencode/skills" "$HOME/.opencode/skills"; do
     [ -d "$d/$s" ] && { rm -rf "$d/$s"; echo "  removed obsolete skill: $s"; }
   done
 done
 
-# --- clean yasdd agents/commands from ~/.opencode/ path --------------------
+# --- remove stale yasdd commands/prompts from prior installs ----------------
+for d in "$HOME/.agents/commands" "$HOME/.agents/prompts" "$OPENCODE_DIR/commands" "$CLAUDE_DIR/commands"; do
+  if [ -d "$d" ]; then
+    rm -f "$d"/yasdd*.md 2>/dev/null || true
+  fi
+done
+echo "  cleaned stale yasdd commands/prompts from prior installs"
+
+# --- clean yasdd agents from ~/.opencode/ path ------------------------------
 if [ -d "$HOME/.opencode" ]; then
   rm -f "$HOME/.opencode/agents"/yasdd*.md 2>/dev/null || true
-  rm -f "$HOME/.opencode/commands"/yasdd*.md 2>/dev/null || true
   echo "  cleaned yasdd files from ~/.opencode/"
 fi
 
@@ -102,37 +105,12 @@ for agent_path in "$SRC_DIR/agents"/*.md; do
   agents_count=$((agents_count + 1))
 done
 
-# --- copy commands ----------------------------------------------------------
-commands_count=0
-for cmd_path in "$SRC_DIR/commands"/*.md; do
-  [ -f "$cmd_path" ] || continue
-  cmd_name=$(basename "$cmd_path")
-  for d in "$COMMANDS_MIRROR" "$OPENCODE_COMMANDS" "$CLAUDE_COMMANDS"; do
-    rm -f "$d/$cmd_name"
-    cp "$cmd_path" "$d/$cmd_name"
-  done
-  echo "  command: $cmd_name"
-  commands_count=$((commands_count + 1))
-done
-
-# --- copy prompts (mirror only — not loaded as commands) -------------------
-prompts_count=0
-for prompt_path in "$SRC_DIR/prompts"/*.md; do
-  [ -f "$prompt_path" ] || continue
-  prompt_name=$(basename "$prompt_path")
-  rm -f "$PROMPTS_MIRROR/$prompt_name"
-  cp "$prompt_path" "$PROMPTS_MIRROR/$prompt_name"
-  prompts_count=$((prompts_count + 1))
-done
-
 # --- summary ----------------------------------------------------------------
 cat <<EOF
 
 === yasdd installed (ref: ${REF}) ===
 skills:    $skills_count  →  ~/.agents/skills/, ~/.claude/skills/
 agents:    $agents_count  →  ~/.agents/agents/, ~/.config/opencode/agents/, ~/.claude/agents/
-commands:  $commands_count  →  ~/.agents/commands/, ~/.config/opencode/commands/, ~/.claude/commands/
-prompts:   $prompts_count  →  ~/.agents/prompts/
 
-Restart opencode and Claude Code so the new agents/commands are picked up.
+Restart opencode and Claude Code so the new agents/skills are picked up.
 EOF

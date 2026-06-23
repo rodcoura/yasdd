@@ -8,34 +8,63 @@
 
 ## Instalação
 
-yasdd é puro markdown — sem build, sem dependências. Coloque `skills/` e `commands/` onde seu agent harness lê. Escolha um local:
+yasdd é puro markdown — sem build, sem dependências. Coloque `skills/` e `agents/` onde seu agent harness lê.
 
-- **Global (todos os projetos):** `~/.agents/` — dá a você `~/.agents/skills/yasdd-*/SKILL.md` e `~/.agents/commands/yasdd*.md`.
-- **Por projeto (um repositório):** `.agents/` na raiz do projeto — `.agents/skills/...` e `.agents/commands/...`.
-- **Personalizado:** qualquer pasta que seu agent harness carregue skills/commands.
+### Recomendado: script de instalação
 
-Faça symlink de cada skill + command (seguro se a pasta já tiver outras skills):
+O `install-to-agents.sh` copia skills e agents para os locais que cada tool escaneia:
+
+```bash
+# a partir de um checkout do repo
+./install-to-agents.sh
+
+# ou one-liner (baixa + instala)
+curl -fsSL https://raw.githubusercontent.com/rodcoura/yasdd/master/install-to-agents.sh | bash
+
+# fixar uma versão específica
+YASDD_REF=<tag> curl -fsSL https://raw.githubusercontent.com/rodcoura/yasdd/master/install-to-agents.sh | bash
+```
+
+Destinos:
+
+| Diretório | Conteúdo |
+| --- | --- |
+| `~/.agents/` | skills, agents (mirror cross-tool) |
+| `~/.config/opencode/` | agents (opencode nativo) |
+| `~/.claude/` | agents, skills (Claude Code nativo) |
+
+### Manual: symlinks
+
+Escolha um local:
+
+- **Global (todos os projetos):** `~/.agents/` — dá a você `~/.agents/skills/yasdd-*/SKILL.md` e `~/.agents/agents/yasdd-spy.md`.
+- **Por projeto (um repositório):** `.agents/` na raiz do projeto — `.agents/skills/...` e `.agents/agents/...`.
+- **Personalizado:** qualquer pasta que seu agent harness carregue skills.
+
+Faça symlink de cada skill + agent (seguro se a pasta já tiver outras skills):
 
 ```bash
 # clone
 git clone https://github.com/rodcoura/yasdd ~/projects/yasdd
 
 # instalação global
-mkdir -p ~/.agents/skills ~/.agents/commands ~/.agents/prompts
+mkdir -p ~/.agents/skills ~/.agents/agents
 for s in ~/projects/yasdd/skills/*; do ln -sf "$s" ~/.agents/skills/; done
-for c in ~/projects/yasdd/commands/*.md; do ln -sf "$c" ~/.agents/commands/; done
-for p in ~/projects/yasdd/prompts/*.md; do ln -sf "$p" ~/.agents/prompts/; done
+for a in ~/projects/yasdd/agents/*.md; do ln -sf "$a" ~/.agents/agents/; done
 ```
 
-Para instalação por projeto, repita os loops com `.agents/` no lugar de `~/.agents/`. Depois rode `/yasdd-init` no seu projeto para criar o `.yasdd/` e atualizar o `AGENTS.md`.
+Para instalação por projeto, repita os loops com `.agents/` no lugar de `~/.agents/`. Depois carregue a skill `yasdd-init` no seu projeto para criar o `.yasdd/` e atualizar o `AGENTS.md`.
 
 ---
 
 ## O que é o yasdd?
 
-yasdd é um **framework de desenvolvimento orientado a especificações** feito inteiramente de skills e comandos em markdown. Ele dá a um agente de IA uma pipeline repetível para transformar um pedido vago de feature em uma feature totalmente implementada e revisada — sem overthinking e sem pular as perguntas difíceis.
+yasdd é um **framework de desenvolvimento orientado a especificações** feito inteiramente de skills em markdown. Ele dá a um agente de IA uma pipeline repetível para transformar um pedido vago de feature em uma feature totalmente implementada e revisada — sem overthinking e sem pular as perguntas difíceis.
 
-Não é código-fonte. Não há build system. Tudo vive em `commands/` (comandos do playbook visíveis ao usuário) e `skills/` (instruções dos subagentes).
+Não é código-fonte. Não há build system. Tudo vive em dois diretórios:
+
+- `skills/` — uma pasta por skill (`<skill>/SKILL.md`); inclui os playbooks do orquestrador e as instruções dos subagentes.
+- `agents/` — definições de subagentes (atualmente `yasdd-spy.md`, o explorador de codebase leve).
 
 ## Como funciona
 
@@ -65,21 +94,19 @@ Cinco ideias centrais fazem o yasdd funcionar:
 - **Verificação única a nível de feature**: em vez de um verificador por spec, um único verificador roda após a fase TEST — ele executa os checks uma vez (rerun incondicional; comandos herdados do CONVENTIONS.md via ARCHITECTURE) sobre todos os arquivos alterados (código + testes) e revisa o diff inteiro da feature para conformidade + code review, depois atribui os achados aos componentes `[M#]` para roteamento. Menor uso de tokens, contexto compartilhado.
 - **Protocolo FINISHED/ISSUES**: o implementador (e o tester) terminam sua saída com um token de status. O orquestrador o analisa: `FINISHED` → marcar como feito; `ISSUES` → mostrar ao usuário (ou, em autoMode, marcar o componente como bloqueado e continuar).
 
-## Comandos
+## Skills
 
-| Comando | O que faz |
+### Skills orquestradoras (pontos de entrada)
+
+| Skill | O que faz |
 | --- | --- |
-| `/yasdd` | Inicia uma nova feature: elicitação → arquitetura (com self-check + batches + testing) → gate → implementar por componente → test → verify. |
-| `/yasdd-quick-win` | Inicia um quick win em um único fluxo: elicitação → uma arquitetura fusionada → implementação → revisão leve. |
-| `/yasdd-implement <slug>` | Retoma a implementação dos componentes de uma feature a partir do STATE.md. |
-| `/yasdd-continue` | Retoma **todas** as features em andamento que ainda têm componentes pendentes. |
-| `/yasdd-status [slug]` | Mostra o status do projeto e dos componentes da feature. |
-| `/yasdd-goback <slug>` | Atualiza uma feature já implementada escrevendo UM novo delta CHANGES/NN. |
-| `/yasdd-doubt <slug>` | Explica uma feature implementada de forma concisa (somente leitura). |
-| `/yasdd-init` | Inicializa o yasdd em um projeto (scaffolding + AGENTS.md). |
-| `/yasdd-clear` | Remove todas as features, quick-wins, CHANGES e CONVENTIONS.md; reseta o PROJECT-STATE.md (destrutivo). |
+| `yasdd-orchestrator` | Inicia uma nova feature: elicitação → arquitetura (com self-check + batches + testing) → gate → implementar por componente → test → verify. |
+| `yasdd-quick-win` | Inicia um quick win em um único fluxo: elicitação → uma arquitetura fusionada → implementação → revisão leve. |
+| `yasdd-implement <slug>` | Retoma a implementação dos componentes de uma feature a partir do STATE.md. |
+| `yasdd-continue` | Retoma **todas** as features em andamento do exato passo em que pararam (elicitation, architecture, gate, implement, test, verify ou wrap up). |
+| `yasdd-status [slug]` | Mostra o status do projeto e dos componentes da feature. |
 
-## Skills (fases e subagentes)
+### Skills de fase e subagentes
 
 | Skill | Papel |
 | --- | --- |
@@ -99,14 +126,14 @@ Cinco ideias centrais fazem o yasdd funcionar:
 
 O yasdd inclui um subagente dedicado e **leve**, `yasdd-spy`, para toda exploração de codebase e rastreamento de features. Ele é definido em `agents/yasdd-spy.md` (frontmatter: `name`, `description`, `mode: subagent`) e projetado para rodar em um modelo rápido e barato (ex.: `anthropic/claude-haiku-4-5`) para que as fases de ELICITATION, GOBACK e VERIFY possam lançar múltiplos spies em paralelo sem custo significativo de tokens.
 
-**Desenvolvedores devem usar o `yasdd-spy`** (não o agente genérico `explore` do harness) sempre que uma skill ou comando pedir investigação do codebase. O spy rastreia implementações de feature dos entry points até o armazenamento de dados, retornando referências `file:line` e listas de arquivos essenciais. Ele também detecta repos **greenfield** (sem arquivos fonte) e retorna um sinal de greenfield para que a skill de elicitação semeie o `CONVENTIONS.md`.
+**Desenvolvedores devem usar o `yasdd-spy`** (não o agente genérico `explore` do harness) sempre que uma skill pedir investigação do codebase. O spy rastreia implementações de feature dos entry points até o armazenamento de dados, retornando referências `file:line` e listas de arquivos essenciais. Ele também detecta repos **greenfield** (sem arquivos fonte) e retorna um sinal de greenfield para que a skill de elicitação semeie o `CONVENTIONS.md`.
 
 Para configurar um modelo específico, edite `agents/yasdd-spy.md` e adicione ou altere um campo `model:` no frontmatter (suporte depende do agent harness).
 
 ## Início rápido
 
-1. Rode `/yasdd-init` uma vez no seu projeto (cria `.yasdd/`, `config.yml`, `PROJECT-STATE.md` e atualiza `AGENTS.md`).
-2. Rode `/yasdd` e responda às perguntas em lote sobre sua feature.
+1. Carregue a skill `yasdd-init` uma vez no seu projeto (cria `.yasdd/`, `config.yml`, `PROJECT-STATE.md` e atualiza `AGENTS.md`).
+2. Carregue a skill `yasdd-orchestrator` e responda às perguntas em lote sobre sua feature.
 3. A pipeline cria `ELICITATION.md → ARCHITECTURE.md → STATE.md` (tudo na sessão principal), e depois pede para prosseguir (a menos que `autoMode: true`).
 4. O orquestrador lê os `Parallel batches` do ARCHITECTURE; implementadores rodam code-only em paralelo por batch (até `maxParallelism`), um por componente `[M#]`. Depois UM tester escreve todos os testes + roda os checks uma vez (comandos herdados do CONVENTIONS.md via ARCHITECTURE). Depois UMA verificação a nível de feature roda sobre código + testes (corrigir → re-testar/re-verificar, até 3× cada).
 5. Pronto? Um `SUMMARY.md` já cresceu com um bullet por implementação nas seções `## Business` (linguagem de PM), `## Implemented` (arquitetura) e `## Files` (arquivos alterados); o `PROJECT-STATE.md` é atualizado.
@@ -155,7 +182,7 @@ Config: <ex., .env, config/>
 | **Brownfield (sem CONVENTIONS.md ainda)** | O architect detecta do `package.json`/`Makefile`/`AGENTS.md` na primeira feature, escreve para que as subsequentes herdem |
 | **Já existe** | O architect herda (nunca re-decide); a elicitação pula o sub-passo de technical-environment |
 
-`/yasdd-init` NÃO cria CONVENTIONS.md — é semeado pela elicitação/architect na primeira feature, não no tempo de init (init não sabe a tech stack ainda).
+A skill `yasdd-init` NÃO cria CONVENTIONS.md — é semeado pela elicitação/architect na primeira feature, não no tempo de init (init não sabe a tech stack ainda).
 
 ## Onde fica cada coisa
 
@@ -165,12 +192,14 @@ Config: <ex., .env, config/>
   CONVENTIONS.md                     # convenções técnicas do projeto (semeado uma vez, herdado por todas as features)
   PROJECT-STATE.md                   # todas as features em um resumo
   features/<slug>/
+    REQUEST.md                       # a requisição original do usuário (raw $ARGUMENTS)
     ELICITATION.md                   # tierada: core 8 + extended 10 (se complexo/greenfield)
     ARCHITECTURE.md                  # componentes [M#] + batches + testing + rules/cases/acceptance
     STATE.md                         # status por componente impl/test/verify
     SUMMARY.md                       # Business / Implemented / Files (incrementado por implementação)
     CHANGES/NN-<change-slug>.md      # deltas do goback em formato ARCHITECTURE
   quick-wins/<slug>/
+    REQUEST.md                       # a requisição original do usuário (raw $ARGUMENTS)
     ELICITATION.md                   # core-only (8 seções)
     ARCHITECTURE.md                  # formato simplificado (sem Components/batches/[M#])
     SUMMARY.md                       # Business / Implemented / Files
@@ -180,7 +209,7 @@ Marcadores de status dos componentes no STATE.md: `- [ ]` não iniciado · `- [~
 
 ### Quick wins
 
-`/yasdd-quick-win` colapsa a pipeline SDD completa em um fluxo stateless de um único disparo:
+A skill `yasdd-quick-win` colapsa a pipeline SDD completa em um fluxo stateless de um único disparo:
 
 ```
 ELICITATION (core-only) → ARCHITECTURE (simplificado, sessão principal) → IMPLEMENTAÇÃO (code-only) → TEST → REVISÃO LEVE DE CÓDIGO
