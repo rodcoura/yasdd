@@ -112,7 +112,7 @@ Five core ideas make yasdd work:
 | `/yasdd-init` † | Initialize yasdd for a project (scaffolding + AGENTS.md). |
 | `/yasdd-clear` † | Remove all features, quick-wins, CHANGES, and CONVENTIONS.md; reset PROJECT-STATE.md (destructive). |
 
-> † These four have no command wrapper file in `commands/`. They are invoked by loading their skill directly (e.g. via the skill tool, or `Load the skill yasdd-init`). The five commands above them are full orchestrator playbacks with command files in `commands/`.
+> † These four have no command wrapper file in `commands/` — they are invoked by loading their skill directly (e.g. via the skill tool, or `Load the skill yasdd-init`). The five commands above them are thin wrappers: each loads its same-named skill (e.g. `/yasdd` loads the `yasdd` skill), which contains the full orchestrator playbook. All skills live in `skills/`.
 
 ## Skills (phases & subagents)
 
