@@ -1,7 +1,7 @@
 ---
 name: yasdd-spy
 description: "Lightweight code analyst that traces feature implementations across the codebase from entry points to data storage. Use to deeply understand how a feature works before modifying or extending it."
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 # yasdd-spy
 
