@@ -7,8 +7,8 @@ description: Tiered elicitation for a new feature. Runs in the MAIN session with
 You run in the MAIN session with the user. Turn a vague request into a gap-free understanding before architecture.
 
 ## Process
-1. Confirm kebab-case slug. Create `.yasdd/`, `.yasdd/features/<slug>/`, and `ELICITATION.md` if missing. Create `.yasdd/PROJECT-STATE.md` (`# Project State` + empty `## Features`) if missing. Read `.yasdd/config.yml` for `maxParallelism`; if missing, create it with `autoMode: false`, `maxParallelism: 3` (no `maxSpecs` — removed in v2).
-2. **Initial investigation:** use `codebase_search` + launch up to `maxParallelism` `yasdd-spy` subagents in parallel (fallback `general`). Goal: identify the FULL initial question set covering every aspect/branch of the design tree.
+1. Confirm kebab-case slug. Create `.yasdd/`, `.yasdd/features/<slug>/`, and `ELICITATION.md` if missing. Create `.yasdd/PROJECT-STATE.md` (`# Project State` + empty `## Features`) if missing. Read `.yasdd/config.yml` for `maxParallelism`; if missing, create it with `autoMode: false`, `maxParallelism: 3`.
+2. **Initial investigation:** launch up to `maxParallelism` `yasdd-spy` subagents in parallel. Goal: identify the FULL initial question set covering every aspect/branch of the design tree.
    - **Greenfield detection:** if yasdd-spy returns "greenfield — no existing source files found" (no source files in repo OR repo empty), treat as greenfield. Inject a "Technical environment decision" sub-step into the initial batch: decide language, framework, test runner, lint tool, directory structure. If `.yasdd/CONVENTIONS.md` already exists, inherit it instead of re-deciding. If not, these decisions will seed `CONVENTIONS.md` (see step 6).
 3. **Ask ALL initial questions at once (ONE batch):** present the complete list in a single `question` tool call (array of question objects), each question with a clearly-marked RECOMMENDED answer so the user can accept/reject/refine. Explicitly NOT one-at-a-time. Initial batch includes new question types grounded in research:
    - "What problem does this solve and how is it measured today?" (Goldsmith: current measures)
@@ -23,8 +23,8 @@ You run in the MAIN session with the user. Turn a vague request into a gap-free 
    - **Happy-path flow**: the normal path, step by step (terse numbered), so ARCHITECTURE doesn't have to infer it.
    - **Problem & motivation**: current measures showing the problem is real (Goldsmith).
    - **Goal & success measures**: testable success criteria (Goldsmith: goal measures).
-6. **Continue the elicitation loop in BATCHED rounds:** re-analyze for remaining gaps, inferences (things assumed but unconfirmed), misunderstandings, and unconnected information. **Each round explicitly checks for the 3 Christel & Kang problems:** scope creep (system boundary ill-defined, unnecessary technical details), misunderstanding (users unsure, omitted "obvious" info, ambiguous/untestable requirements), volatility (requirements likely to change). For each round, collect ALL newly-discovered questions into ONE batch and ask them together via a single `question` call (never one-at-a-time), each with a recommended answer. If a question can be answered by exploring the codebase, EXPLORE instead of asking. Append notes; close/open Open-question items; add newly discovered ones. Ground the discussion in yasdd-spy findings. Do NOT read other features' ELICITATION/ARCHITECTURE/SUMMARY for project state.
-7. **Stop when ALL hold:** Open questions empty AND every category has concrete (non-vague) content AND no inferences remain AND no misunderstandings AND all information is connected AND the 3 Christel & Kang problems show no indicators.
+6. **Continue the elicitation loop in BATCHED rounds:** re-analyze for remaining gaps, inferences (things assumed but unconfirmed), misunderstandings, and orphaned details (facts not tied to a decision or component). **Each round explicitly checks for the 3 Christel & Kang problems:** scope creep (system boundary ill-defined, unnecessary technical details), misunderstanding (users unsure, omitted "obvious" info, ambiguous/untestable requirements), volatility (requirements likely to change). For each round, collect ALL newly-discovered questions into ONE batch and ask them together via a single `question` call (never one-at-a-time), each with a recommended answer. If a question can be answered by exploring the codebase, EXPLORE instead of asking. Append notes; close/open Open-question items; add newly discovered ones. Ground the discussion in yasdd-spy findings. Do NOT read other features' ELICITATION/ARCHITECTURE/SUMMARY for project state.
+7. **Stop when ALL hold:** Open questions empty AND every category has concrete (non-vague) content AND no inferences remain AND no misunderstandings AND no orphaned details remain AND the 3 Christel & Kang problems show no indicators.
 8. **Final add-anything check:** ask the user (question tool): "Is there anything else you want to add to the discussion that should go into the architecture?" If yes, capture it and loop back to step 5 for those items. If no, proceed.
 9. **Seed CONVENTIONS.md (greenfield only):** if greenfield was detected AND `.yasdd/CONVENTIONS.md` does not exist, write it from the technical-environment decisions made in step 2/3:
    ```md
@@ -89,7 +89,7 @@ Omit the extended section header + its subsections if the tier decision (step 4)
 - Ask questions in BATCHES (all current open questions per round in one `question` call); never one-at-a-time.
 - Dense + structured; never prose essays. Reference existing code by path.
 - Never invent answers; record unknowns as open questions.
-- Don't over-elicit; be pragmatic — but don't stop until gaps, inferences, misunderstandings, and unconnected information are resolved.
+- Don't over-elicit; be pragmatic — but don't stop until gaps, inferences, misunderstandings, and orphaned details (facts not tied to a decision or component) are resolved.
 - Check for the 3 Christel & Kang problems (scope, understanding, volatility) every round.
 
 ## Pragmatic principles

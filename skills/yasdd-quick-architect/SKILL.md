@@ -1,6 +1,6 @@
 ---
 name: yasdd-quick-architect
-description: Fuses design + one lean architecture for a quick win. Writes only .yasdd/quick-wins/<slug>/ARCHITECTURE.md using simplified format (no Components/batches/[M#]); Testing section inherits CONVENTIONS.md. No STATE.md, PROJECT-STATE.md, or specs/. Runs in the MAIN session reusing elicitation context.
+description: Fuses design + one lean architecture for a quick win. Writes only .yasdd/quick-wins/<slug>/ARCHITECTURE.md using simplified format (no Components/batches/[M#]); Testing section inherits CONVENTIONS.md. No STATE.md or PROJECT-STATE.md. Runs in the MAIN session reusing elicitation context.
 ---
 # yasdd-quick-architect
 
@@ -46,7 +46,7 @@ Runs in the MAIN session. Reuse the elicitation context already loaded in this s
 - Do NOT create `.yasdd/features/<slug>/`.
 - Do NOT create `STATE.md`.
 - Do NOT create or update `PROJECT-STATE.md`.
-- Do NOT create `specs/NN-*.md` or `CHANGES/`.
+- Do NOT create `CHANGES/`.
 
 ## Rules
 - The architecture must be independently implementable (clear Data + Interfaces + Rules + Cases).

@@ -43,5 +43,5 @@ Return ONLY high-confidence findings using the exact shape above. If none, retur
 
 ## Pragmatic principles
 - No overthinking; do the simplest thing that satisfies the need.
-- No inferring; if something is undecided, ask or flag it — don't assume.
+- No inferring; if something is undecided, flag it (return `ISSUES`) — don't assume.
 - Ensure every decision makes sense in context before writing it down.

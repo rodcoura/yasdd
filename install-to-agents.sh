@@ -5,11 +5,9 @@
 #   ~/.config/opencode/     opencode native  (agents, commands)
 #   ~/.claude/              Claude Code native (agents, commands, skills)
 #
-# Also removes stale v1 skill renames and cleans the old buggy ~/.opencode/ path.
-#
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/rodcoura/yasdd/master/install-to-agents.sh | bash
-#   YASDD_REF=v2.0 curl -fsSL https://raw.githubusercontent.com/rodcoura/yasdd/master/install-to-agents.sh | bash
+#   YASDD_REF=<tag> curl -fsSL https://raw.githubusercontent.com/rodcoura/yasdd/master/install-to-agents.sh | bash
 #   ./install-to-agents.sh            # run from a repo checkout (uses local files)
 
 set -euo pipefail
@@ -63,19 +61,19 @@ mkdir -p \
   "$OPENCODE_AGENTS" "$OPENCODE_COMMANDS" \
   "$CLAUDE_AGENTS" "$CLAUDE_COMMANDS" "$CLAUDE_SKILLS"
 
-# --- remove stale v1 skill renames (renamed in v2) -------------------------
+# --- remove obsolete skill folders -----------------------------------------
 STALE_SKILLS=(yasdd-designer yasdd-discuss yasdd-specs yasdd-test-design yasdd-quick-discuss yasdd-quick-spec)
 for s in "${STALE_SKILLS[@]}"; do
   for d in "$SKILLS_MIRROR" "$CLAUDE_SKILLS" "$HOME/.config/opencode/skills" "$HOME/.opencode/skills"; do
-    [ -d "$d/$s" ] && { rm -rf "$d/$s"; echo "  removed stale skill: $s"; }
+    [ -d "$d/$s" ] && { rm -rf "$d/$s"; echo "  removed obsolete skill: $s"; }
   done
 done
 
-# --- clean stale yasdd agents/commands from old buggy ~/.opencode/ path ----
+# --- clean yasdd agents/commands from ~/.opencode/ path --------------------
 if [ -d "$HOME/.opencode" ]; then
   rm -f "$HOME/.opencode/agents"/yasdd*.md 2>/dev/null || true
   rm -f "$HOME/.opencode/commands"/yasdd*.md 2>/dev/null || true
-  echo "  cleaned stale yasdd files from ~/.opencode/ (old buggy path)"
+  echo "  cleaned yasdd files from ~/.opencode/"
 fi
 
 # --- copy skills ------------------------------------------------------------

@@ -13,7 +13,7 @@ Run in the MAIN session. Initialize yasdd for this project.
    autoMode: false
    maxParallelism: 3
    ```
-   (Merge: set `maxParallelism: 3` if missing; keep `autoMode` as-is. Remove `maxSpecs` if present — removed in v2.)
+   (Merge: set `maxParallelism: 3` if missing; keep `autoMode` as-is.)
 3. Create `.yasdd/PROJECT-STATE.md` if missing with content:
    ```md
    # Project State
@@ -21,7 +21,7 @@ Run in the MAIN session. Initialize yasdd for this project.
    ## Features
    ```
 4. Update/create `AGENTS.md` in the project root with a brief `## yasdd` section:
-   - yasdd workflow pointer (`.yasdd/`, `/yasdd`, `/yasdd-implement`, `/yasdd-init`, `/yasdd-goback`, `/yasdd-clear`, `/yasdd-doubt`, `/yasdd-status`).
+   - yasdd workflow pointer (`.yasdd/`, `/yasdd`, `/yasdd-quick-win`, `/yasdd-implement`, `/yasdd-continue`, `/yasdd-init`, `/yasdd-goback`, `/yasdd-clear`, `/yasdd-doubt`, `/yasdd-status`).
    - Scoped reads, no overthinking, pragmatic decisions.
 5. **Do NOT create `CONVENTIONS.md`** — it is seeded by the elicitation skill (greenfield) or the architect skill (brownfield) on the first feature, then inherited by all subsequent features.
 

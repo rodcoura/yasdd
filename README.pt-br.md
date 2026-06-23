@@ -58,7 +58,7 @@ ELICITATION e ARCHITECTURE rodam na sessão principal reutilizando o contexto de
 
 Cinco ideias centrais fazem o yasdd funcionar:
 
-- **Implementação a nível de arquitetura, particionada por componente**: o ARCHITECTURE.md absorve o que antes eram specs (Rules/Cases/Acceptance com anchors) + arquitetura de testes + plano de batches paralelos. A implementação é guiada por `Components [M#]` — o todo-list natural do LLM se torna o plano. Sem passo de decomposição de specs.
+- **Implementação a nível de arquitetura, particionada por componente**: o ARCHITECTURE.md contém o conteúdo de specs (Rules/Cases/Acceptance com anchors) + arquitetura de testes + plano de batches paralelos. A implementação é guiada por `Components [M#]` — o todo-list natural do LLM se torna o plano. Sem passo de decomposição de specs.
 - **Acceptance = Given/When/Then**: o caminho feliz + cada Case, cada um verificável por um teste. Isso torna a regra de "arquitetura funcionando" verificável, e não autorreportada.
 - **Reuso de contexto na sessão principal**: ELICITATION e ARCHITECTURE rodam inline na sessão principal, reutilizando o contexto de código carregado durante a elicitação — sem subagentes de re-exploração, menor uso de tokens.
 - **Implementação paralela via testes adiados**: o implementador é code-only (sem testes, sem checks) para que componentes com conjuntos de arquivos disjuntos possam rodar em batches paralelos (pré-computados na seção `Parallel batches` do ARCHITECTURE). O tester escreve todos os testes + roda os checks uma vez após todos os componentes pousarem. Mid-flight batch update (em memória) lida com conflitos de arquivo imprevistos.
@@ -92,16 +92,16 @@ Cinco ideias centrais fazem o yasdd funcionar:
 | `yasdd-verifier` | UMA revisão a nível de feature somente pesquisa de código **+ testes** + um **rerun de checks** (incondicional; roda lint/typecheck/tests uma vez por feature, sobre todos os arquivos alterados; comandos herdados do CONVENTIONS.md via ARCHITECTURE). Atribui achados aos componentes `[M#]`. (subagente) |
 | `yasdd-goback` | Atualiza uma feature implementada com um delta CHANGES/NN em formato ARCHITECTURE. (sessão principal) |
 | `yasdd-doubt` | Explica uma feature (somente leitura). (sessão principal) |
-| `yasdd-init` | Cria o `.yasdd/` e a config (sem maxSpecs); NÃO cria CONVENTIONS.md. (sessão principal) |
+| `yasdd-init` | Cria o `.yasdd/` e a config; NÃO cria CONVENTIONS.md. (sessão principal) |
 | `yasdd-clear` | Limpa features, quick-wins, CHANGES e CONVENTIONS.md (mantém a config). (sessão principal) |
 
 ### yasdd-spy (agente de exploração de codebase)
 
-O yasdd inclui um subagente dedicado e **leve**, `yasdd-spy`, para toda exploração de codebase e rastreamento de features. Ele é configurado com um modelo rápido e barato (ex.: `anthropic/claude-haiku-4-5`) para que as fases de ELICITATION, GOBACK e VERIFY possam lançar múltiplos spies em paralelo sem custo significativo de tokens.
+O yasdd inclui um subagente dedicado e **leve**, `yasdd-spy`, para toda exploração de codebase e rastreamento de features. Ele é definido em `agents/yasdd-spy.md` (frontmatter: `name`, `description`, `mode: subagent`) e projetado para rodar em um modelo rápido e barato (ex.: `anthropic/claude-haiku-4-5`) para que as fases de ELICITATION, GOBACK e VERIFY possam lançar múltiplos spies em paralelo sem custo significativo de tokens.
 
 **Desenvolvedores devem usar o `yasdd-spy`** (não o agente genérico `explore` do harness) sempre que uma skill ou comando pedir investigação do codebase. O spy rastreia implementações de feature dos entry points até o armazenamento de dados, retornando referências `file:line` e listas de arquivos essenciais. Ele também detecta repos **greenfield** (sem arquivos fonte) e retorna um sinal de greenfield para que a skill de elicitação semeie o `CONVENTIONS.md`.
 
-Para usar um modelo leve diferente, edite `agents/yasdd-spy.md` e altere o campo `model:` no frontmatter.
+Para configurar um modelo específico, edite `agents/yasdd-spy.md` e adicione ou altere um campo `model:` no frontmatter (suporte depende do agent harness).
 
 ## Início rápido
 
@@ -119,8 +119,6 @@ Para usar um modelo leve diferente, edite `agents/yasdd-spy.md` e altere o campo
 autoMode: false      # true = arquitetura → direto para implementação (sem pausa no gate)
 maxParallelism: 3    # limite de chamadas de subagentes paralelos por passo + tamanho do batch
 ```
-
-`maxSpecs` foi removido — o architect decide a contagem de componentes naturalmente. Uma nota de awareness de custo de tokens no skill architect aconselha fundir se >6 componentes, mas é apenas consultivo, não obrigatório.
 
 Comandos de check (lint, typecheck, test) são **do projeto todo**, capturados uma vez no `.yasdd/CONVENTIONS.md` (semeado pela elicitação em greenfield, ou pelo architect no brownfield na primeira feature). Cada ARCHITECTURE.md herda eles. Isso elimina a redescoberta de framework de testes por feature.
 
@@ -168,7 +166,7 @@ Config: <ex., .env, config/>
   PROJECT-STATE.md                   # todas as features em um resumo
   features/<slug>/
     ELICITATION.md                   # tierada: core 8 + extended 10 (se complexo/greenfield)
-    ARCHITECTURE.md                  # componentes [M#] + batches + testing + rules/cases/acceptance (absorve o antigo DESIGN + TESTING + specs)
+    ARCHITECTURE.md                  # componentes [M#] + batches + testing + rules/cases/acceptance
     STATE.md                         # status por componente impl/test/verify
     SUMMARY.md                       # Business / Implemented / Files (incrementado por implementação)
     CHANGES/NN-<change-slug>.md      # deltas do goback em formato ARCHITECTURE

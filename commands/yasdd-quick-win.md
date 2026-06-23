@@ -40,7 +40,7 @@ Subagents are launched ONLY for the IMPLEMENT (step 4), TEST (step 5), and VERIF
       classified findings (test-bug vs impl-bug). Attribute findings to "quick-win" (no [M#]).
       ```
    - `FINISHED` → proceed to VERIFY (step 6).
-    - `ISSUES` → FIX-LOOP: write a fix-plan inline, re-launch the implementer with the fix-plan + "Run ALL checks. Prefer check commands from ARCHITECTURE's Testing section; fall back to detection." prompt-injected, then re-run the tester. Loop until `NO_FINDINGS` or 3 rounds. After 3 rounds: `autoMode: false` → surface to user and pause; `autoMode: true` → append blocked note, report, and stop.
+   - `ISSUES` → FIX-LOOP: write a fix-plan inline, re-launch the implementer with the fix-plan + "Run ALL checks. Prefer check commands from ARCHITECTURE's Testing section; fall back to detection." prompt-injected, then re-run the tester. Loop until the tester returns `FINISHED` or 3 rounds. After 3 rounds: `autoMode: false` → surface to user and pause; `autoMode: true` → append blocked note, report, and stop.
 6. **CODE REVIEW** (subagent, skill `yasdd-verifier`, lighter quick-win override):
    - Launch ONE `general` subagent with slug + config values + this override:
       ```
@@ -48,13 +48,13 @@ Subagents are launched ONLY for the IMPLEMENT (step 4), TEST (step 5), and VERIF
       .yasdd/quick-wins/<slug>/ARCHITECTURE.md's Testing section (inherited from CONVENTIONS.md),
       or detect from package.json/Makefile/AGENTS.md if fields are empty.
 
-       Then run ONLY the business-logic track + architecture conformance against
-       .yasdd/quick-wins/<slug>/ARCHITECTURE.md (use the [R#]/[C#]/[A#] anchors
-       for precise references — there are no [M#] components for quick wins).
-       Review code + tests (tests now exist from the TEST phase). Spawn at most ONE
-       yasdd-spy subagent for the business-logic track. Skip security, performance,
-       deploy-safety, duplication, and dead-code tracks. Attribute findings to
-       "quick-win" (no [M#]). Report findings or NO_FINDINGS using the standard output format.
+      Then run ONLY the business-logic track + architecture conformance against
+      .yasdd/quick-wins/<slug>/ARCHITECTURE.md (use the [R#]/[C#]/[A#] anchors
+      for precise references — there are no [M#] components for quick wins).
+      Review code + tests (tests now exist from the TEST phase). Spawn at most ONE
+      yasdd-spy subagent for the business-logic track. Skip security, performance,
+      deploy-safety, duplication, and dead-code tracks. Attribute findings to
+      "quick-win" (no [M#]). Report findings or NO_FINDINGS using the standard output format.
       ```
    - If the verifier returns `NO_FINDINGS`, the quick win is done.
    - If the verifier returns findings, re-launch the implementer for the SAME quick win with the findings + "Run ALL checks. Prefer check commands from ARCHITECTURE's Testing section; fall back to detection." prompt-injected, then re-verify. Loop until `NO_FINDINGS` or until 3 review attempts have been made.

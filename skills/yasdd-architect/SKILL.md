@@ -56,7 +56,7 @@ Non-functional: <1-2 NFRs; note which component [M#] owns each>
 
 ### Token-cost awareness (no hard cap)
 
-There is no `maxSpecs` cap — component count is decided naturally. However, include this awareness in your reasoning:
+There is no hard cap on component count — it is decided naturally. However, include this awareness in your reasoning:
 
 > **Component count awareness:** each `[M#]` component triggers one implementer invocation (~4,000–5,000 tokens each). If the component count exceeds 6, re-evaluate whether some components can merge (e.g., two tightly-coupled modules editing the same file set → one component). This is advisory, not a hard cap — complex features may legitimately need 8+ components.
 

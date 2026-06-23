@@ -1,6 +1,6 @@
 ---
 name: yasdd-implementer
-description: Implements ONE component [M#] from ARCHITECTURE.md to completion: scoped reads, code-only (no tests, no gate). Reports split conformance table (architecture-conformance self-verified; functioning deferred to TEST phase) + changed-files manifest. Sequential per batch; never multiple components.
+description: Implements ONE component [M#] from ARCHITECTURE.md to completion: scoped reads, code-only (no tests, no checks). Reports split conformance table (architecture-conformance self-verified; functioning deferred to TEST phase) + changed-files manifest. One component per invocation; never multiple components.
 ---
 # yasdd-implementer
 
@@ -66,5 +66,5 @@ The orchestrator parses this token to decide the next step.
 
 ## Pragmatic principles
 - No overthinking; do the simplest thing that satisfies the need.
-- No inferring; if something is undecided, ask or flag it — don't assume.
+- No inferring; if something is undecided, flag it (return `ISSUES`) — don't assume.
 - Ensure every decision makes sense in context before writing it down.

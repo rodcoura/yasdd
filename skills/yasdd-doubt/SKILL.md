@@ -7,8 +7,8 @@ description: Explains an implemented feature concisely: what it does, key entry 
 Input: feature slug (`$1`). Run in the MAIN session.
 
 ## Process
-1. Read `.yasdd/features/<slug>/SUMMARY.md`, `ARCHITECTURE.md`, and `STATE.md`. Read `.yasdd/config.yml` for `maxParallelism` (default 3).
-2. Optionally launch up to ONE `yasdd-spy` subagent (fallback `general`; within `maxParallelism`) to inspect the current implementation and confirm entry points (file:line).
+1. Read `.yasdd/features/<slug>/SUMMARY.md`, `ARCHITECTURE.md`, and `STATE.md`.
+2. Optionally launch ONE `yasdd-spy` subagent in parallel to inspect the current implementation and confirm entry points (file:line).
 3. Output a concise explanation:
    - What the feature does (2-3 sentences).
    - Key entry points: `file:line — what`.

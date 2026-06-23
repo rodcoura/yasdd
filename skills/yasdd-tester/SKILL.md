@@ -55,5 +55,5 @@ The orchestrator parses this token to decide the next step (fix-loop or proceed 
 
 ## Pragmatic principles
 - No overthinking; do the simplest thing that satisfies the need.
-- No inferring; if something is undecided, ask or flag it — don't assume.
+- No inferring; if something is undecided, flag it (return `ISSUES`) — don't assume.
 - Ensure every decision makes sense in context before writing it down.

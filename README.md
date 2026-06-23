@@ -8,22 +8,50 @@
 
 ## Installation
 
-yasdd is pure markdown — no build step, no dependencies. Place `skills/` and `commands/` where your agent harness reads them. Pick one location:
+yasdd is pure markdown — no build step, no dependencies. Place `skills/`, `commands/`, and `agents/` where your agent harness reads them.
 
-- **Global (all projects):** `~/.agents/` — gives you `~/.agents/skills/yasdd-*/SKILL.md` and `~/.agents/commands/yasdd*.md`.
-- **Project-local (one repo):** `.agents/` in the project root — `.agents/skills/...` and `.agents/commands/...`.
+### Recommended: installer script
+
+The `install-to-agents.sh` script copies skills, agents, commands, and prompts to the locations each tool actually scans:
+
+```bash
+# from a repo checkout
+./install-to-agents.sh
+
+# or one-liner (downloads + installs)
+curl -fsSL https://raw.githubusercontent.com/rodcoura/yasdd/master/install-to-agents.sh | bash
+
+# pin a specific version
+YASDD_REF=<tag> curl -fsSL https://raw.githubusercontent.com/rodcoura/yasdd/master/install-to-agents.sh | bash
+```
+
+Targets:
+
+| Directory | Contents |
+| --- | --- |
+| `~/.agents/` | skills, agents, commands, prompts (cross-tool mirror) |
+| `~/.config/opencode/` | agents, commands (opencode native) |
+| `~/.claude/` | agents, commands, skills (Claude Code native) |
+
+### Manual: symlinks
+
+Pick one location:
+
+- **Global (all projects):** `~/.agents/` — gives you `~/.agents/skills/yasdd-*/SKILL.md`, `~/.agents/commands/yasdd*.md`, and `~/.agents/agents/yasdd-spy.md`.
+- **Project-local (one repo):** `.agents/` in the project root — `.agents/skills/...`, `.agents/commands/...`, `.agents/agents/...`.
 - **Custom:** any folder your agent harness loads skills/commands from.
 
-Symlink each skill + command (safe if the folder already holds other skills):
+Symlink each directory (safe if the folder already holds other skills):
 
 ```bash
 # clone
 git clone https://github.com/rodcoura/yasdd ~/projects/yasdd
 
 # global install
-mkdir -p ~/.agents/skills ~/.agents/commands ~/.agents/prompts
+mkdir -p ~/.agents/skills ~/.agents/commands ~/.agents/agents ~/.agents/prompts
 for s in ~/projects/yasdd/skills/*; do ln -sf "$s" ~/.agents/skills/; done
 for c in ~/projects/yasdd/commands/*.md; do ln -sf "$c" ~/.agents/commands/; done
+for a in ~/projects/yasdd/agents/*.md; do ln -sf "$a" ~/.agents/agents/; done
 for p in ~/projects/yasdd/prompts/*.md; do ln -sf "$p" ~/.agents/prompts/; done
 ```
 
@@ -35,7 +63,12 @@ For a project-local install, repeat the loops with `.agents/` instead of `~/.age
 
 yasdd is a **specless design and delivery framework** made entirely of markdown skills and commands. It gives an AI coding agent a repeatable pipeline to take a vague feature request and turn it into a fully implemented, reviewed feature — without overthinking and without skipping the hard questions.
 
-It is not source code. There is no build system. Everything lives in `commands/` (the user-facing playbook commands) and `skills/` (the subagent instructions).
+It is not source code. There is no build system. Everything lives in four directories:
+
+- `commands/` — user-facing slash commands (the orchestrator playbooks).
+- `skills/` — subagent instructions, one folder per skill (`<skill>/SKILL.md`).
+- `agents/` — subagent definitions (currently `yasdd-spy.md`, the lightweight codebase explorer).
+- `prompts/` — symlinks mirroring `commands/` for tools that read from a `prompts/` directory instead of `commands/`.
 
 ## How it works
 
@@ -58,7 +91,7 @@ ELICITATION and ARCHITECTURE run in the main session reusing loaded codebase con
 
 Five core ideas make yasdd work:
 
-- **Architecture-level, component-partitioned implementation**: ARCHITECTURE.md absorbs what used to be specs (Rules/Cases/Acceptance with anchors) + testing architecture + parallel batch plan. Implementation is driven by `Components [M#]` — the LLM's natural todo-list building becomes the plan. No specs decomposition step.
+- **Architecture-level, component-partitioned implementation**: ARCHITECTURE.md contains the spec content (Rules/Cases/Acceptance with anchors) + testing architecture + parallel batch plan. Implementation is driven by `Components [M#]` — the LLM's natural todo-list building becomes the plan. No specs decomposition step.
 - **Acceptance = Given/When/Then**: the happy path + each Case, each checkable by a test. This makes the "functioning architecture" rule verifiable instead of self-reported.
 - **Main-session context reuse**: ELICITATION and ARCHITECTURE run inline in the main session, reusing the codebase context loaded during elicitation — no re-exploration subagents, lower token usage.
 - **Parallel implementation via deferred testing**: the implementer is code-only (no tests, no checks) so components with disjoint file sets can run in parallel batches (pre-computed in ARCHITECTURE's `Parallel batches` section). The tester writes all tests + runs checks once after all components land. Mid-flight batch update (in-memory) handles unforeseen file conflicts.
@@ -74,10 +107,12 @@ Five core ideas make yasdd work:
 | `/yasdd-implement <slug>` | Resume implementing a single feature's components from its STATE.md. |
 | `/yasdd-continue` | Resume **every** in-progress feature that still has pending components. |
 | `/yasdd-status [slug]` | Print project + feature component status. |
-| `/yasdd-goback <slug>` | Update an already-implemented feature by writing ONE new CHANGES/NN delta. |
-| `/yasdd-doubt <slug>` | Explain an implemented feature concisely (read-only). |
-| `/yasdd-init` | Initialize yasdd for a project (scaffolding + AGENTS.md). |
-| `/yasdd-clear` | Remove all features, quick-wins, CHANGES, and CONVENTIONS.md; reset PROJECT-STATE.md (destructive). |
+| `/yasdd-goback <slug>` † | Update an already-implemented feature by writing ONE new CHANGES/NN delta. |
+| `/yasdd-doubt <slug>` † | Explain an implemented feature concisely (read-only). |
+| `/yasdd-init` † | Initialize yasdd for a project (scaffolding + AGENTS.md). |
+| `/yasdd-clear` † | Remove all features, quick-wins, CHANGES, and CONVENTIONS.md; reset PROJECT-STATE.md (destructive). |
+
+> † These four have no command wrapper file in `commands/`. They are invoked by loading their skill directly (e.g. via the skill tool, or `Load the skill yasdd-init`). The five commands above them are full orchestrator playbacks with command files in `commands/`.
 
 ## Skills (phases & subagents)
 
@@ -92,16 +127,16 @@ Five core ideas make yasdd work:
 | `yasdd-verifier` | ONE feature-level research-only review of code **+ tests** + a **checks rerun** (unconditional; runs lint/typecheck/tests once per feature, across all changed files; commands inherited from CONVENTIONS.md via ARCHITECTURE). Attributes findings to components `[M#]`. (subagent) |
 | `yasdd-goback` | Updates an implemented feature with one CHANGES/NN delta in ARCHITECTURE format. (main session) |
 | `yasdd-doubt` | Explains a feature (read-only). (main session) |
-| `yasdd-init` | Scaffolds `.yasdd/` and config (no maxSpecs); does NOT create CONVENTIONS.md. (main session) |
+| `yasdd-init` | Scaffolds `.yasdd/` and config; does NOT create CONVENTIONS.md. (main session) |
 | `yasdd-clear` | Wipes features, quick-wins, CHANGES, and CONVENTIONS.md (keeps config). (main session) |
 
 ### yasdd-spy (codebase exploration agent)
 
-yasdd ships a dedicated **lightweight** subagent, `yasdd-spy`, for all codebase exploration and feature-tracing tasks. It is configured with a fast, inexpensive model (e.g. `anthropic/claude-haiku-4-5`) so that ELICITATION, GOBACK, and VERIFY phases can launch multiple parallel spies without significant token cost.
+yasdd ships a dedicated **lightweight** subagent, `yasdd-spy`, for all codebase exploration and feature-tracing tasks. It is defined in `agents/yasdd-spy.md` (frontmatter: `name`, `description`, `mode: subagent`) and intended to run on a fast, inexpensive model (e.g. `anthropic/claude-haiku-4-5`) so that ELICITATION, GOBACK, and VERIFY phases can launch multiple parallel spies without significant token cost.
 
 **Developers should use `yasdd-spy`** (not the harness's generic `explore` agent) whenever a skill or command calls for codebase investigation. The spy traces feature implementations from entry points to data storage, returning `file:line` references and essential-files lists. It also detects **greenfield** repos (no source files) and returns a greenfield signal so the elicitation skill can seed `CONVENTIONS.md`.
 
-To use a different lightweight model, edit `agents/yasdd-spy.md` and change the `model:` frontmatter field.
+To configure a specific model, edit `agents/yasdd-spy.md` and add or change a `model:` frontmatter field (support depends on your agent harness).
 
 ## Quick start
 
@@ -119,8 +154,6 @@ To use a different lightweight model, edit `agents/yasdd-spy.md` and change the 
 autoMode: false      # true = architecture → straight to implementation (no gate pause)
 maxParallelism: 3    # cap on parallel subagent calls per step + batch size
 ```
-
-`maxSpecs` has been removed — the architect decides component count naturally. A token-cost awareness note in the architect skill advises merging if >6 components, but this is advisory, not enforced.
 
 Check commands (lint, typecheck, test) are **project-wide**, captured once in `.yasdd/CONVENTIONS.md` (seeded by elicitation on greenfield, or by the architect on brownfield first feature). Every feature's ARCHITECTURE.md inherits them. This eliminates per-feature test-framework rediscovery.
 
@@ -168,7 +201,7 @@ Config: <e.g., .env, config/>
   PROJECT-STATE.md                   # all features at a glance
   features/<slug>/
     ELICITATION.md                   # tiered: core 8 + extended 10 (if complex/greenfield)
-    ARCHITECTURE.md                  # components [M#] + batches + testing + rules/cases/acceptance (absorbs old DESIGN + TESTING + specs)
+    ARCHITECTURE.md                  # components [M#] + batches + testing + rules/cases/acceptance
     STATE.md                         # per-component impl/test/verify status
     SUMMARY.md                       # Business / Implemented / Files (appended per implementation)
     CHANGES/NN-<change-slug>.md      # goback deltas in ARCHITECTURE format
@@ -178,7 +211,7 @@ Config: <e.g., .env, config/>
     SUMMARY.md                       # Business / Implemented / Files
 ```
 
-Component status markers in STATE.md: `- [ ]` not started · `- [~]` blocked (failed test or verify) · `- [x]` fully done (impl + test + verify). Each component has `impl`/`test`/`verify` sub-markers for precise fix-loop routing.
+Component status markers in STATE.md: `- [ ]` not started · `- [~]` blocked (failed test or verify) · `- [x]` fully done (impl + test + verify). During implementation the top-level marker stays `[ ]`; it only flips to `[x]` once all three sub-markers are done. Each component has `impl`/`test`/`verify` sub-markers for precise fix-loop routing.
 
 ### Quick wins
 
