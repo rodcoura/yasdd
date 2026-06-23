@@ -1,6 +1,6 @@
 ---
 name: yasdd-architect
-description: Produces a pragmatic ARCHITECTURE.md from a feature's ELICITATION.md. Absorbs spec content (Rules/Cases/Acceptance with anchors) + testing architecture + parallel batch plan. 10-point self-check (cap 3 iterations). CONVENTIONS.md inheritance. Runs in the MAIN session reusing elicitation context.
+description: "Produces a pragmatic ARCHITECTURE.md from a feature's ELICITATION.md. Absorbs spec content (Rules/Cases/Acceptance with anchors) + testing architecture + parallel batch plan. 10-point self-check (cap 3 iterations). CONVENTIONS.md inheritance. Runs in the MAIN session reusing elicitation context."
 disable-model-invocation: true
 ---
 # yasdd-architect

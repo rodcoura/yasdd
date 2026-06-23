@@ -1,6 +1,6 @@
 ---
 name: yasdd-goback
-description: Update an implemented feature. Loads the feature SUMMARY + ARCHITECTURE, asks all change-related questions in batches (elicitation-style, codebase-first) about the desired change, writes ONE new CHANGES/NN delta in ARCHITECTURE format, and updates STATE.md + PROJECT-STATE.md so it acts like a component still to implement.
+description: "Update an implemented feature. Loads the feature SUMMARY + ARCHITECTURE, asks all change-related questions in batches (elicitation-style, codebase-first) about the desired change, writes ONE new CHANGES/NN delta in ARCHITECTURE format, and updates STATE.md + PROJECT-STATE.md so it acts like a component still to implement."
 disable-model-invocation: true
 ---
 # yasdd-goback

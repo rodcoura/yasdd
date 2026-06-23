@@ -1,6 +1,6 @@
 ---
 name: yasdd-verifier
-description: Research-only multi-track code reviewer (security, performance, business logic + architecture conformance, deploy safety, duplication, dead code). Reviews code + tests (tests now exist from the TEST phase). Report-only; never edits files but runs lint/typecheck/tests once as an unconditional green-gate rerun. Spawns up to maxParallelism track subagents and merges high-confidence findings. Runs ONCE per feature (or quick win) over all just-implemented components + tests + the whole feature diff.
+description: "Research-only multi-track code reviewer (security, performance, business logic + architecture conformance, deploy safety, duplication, dead code). Reviews code + tests (tests now exist from the TEST phase). Report-only; never edits files but runs lint/typecheck/tests once as an unconditional green-gate rerun. Spawns up to maxParallelism track subagents and merges high-confidence findings. Runs ONCE per feature (or quick win) over all just-implemented components + tests + the whole feature diff."
 disable-model-invocation: true
 ---
 # yasdd-verifier

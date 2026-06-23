@@ -1,6 +1,6 @@
 ---
 name: yasdd-init
-description: Initializes the yasdd framework for a project: creates .yasdd/ + config (autoMode false + maxParallelism), creates PROJECT-STATE.md, and updates AGENTS.md with yasdd guidance. Does NOT create CONVENTIONS.md (seeded by elicitation/architect on first feature).
+description: "Initializes the yasdd framework for a project: creates .yasdd/ + config (autoMode false + maxParallelism), creates PROJECT-STATE.md, and updates AGENTS.md with yasdd guidance. Does NOT create CONVENTIONS.md (seeded by elicitation/architect on first feature)."
 disable-model-invocation: true
 ---
 # yasdd-init

@@ -1,6 +1,6 @@
 ---
 name: yasdd-quick-elicitation
-description: Core-only batched elicitation for a quick win. Runs in the MAIN session, creates only .yasdd/quick-wins/<slug>/ELICITATION.md (8 core sections, no extended), no STATE.md or PROJECT-STATE.md updates.
+description: "Core-only batched elicitation for a quick win. Runs in the MAIN session, creates only .yasdd/quick-wins/<slug>/ELICITATION.md (8 core sections, no extended), no STATE.md or PROJECT-STATE.md updates."
 disable-model-invocation: true
 ---
 # yasdd-quick-elicitation
