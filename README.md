@@ -110,8 +110,8 @@ Five core ideas make yasdd work:
 
 | Skill | Role |
 | --- | --- |
-| `yasdd-elicitation` | Tiered batched elicitation (core 8 + extended 10 if complex/greenfield); greenfield detection → seeds CONVENTIONS.md; Christel & Kang watchlist per round; writes ELICITATION.md. (main session) |
-| `yasdd-quick-elicitation` | Quick-win core-only elicitation (8 sections, no extended); greenfield detection; writes `.yasdd/quick-wins/<slug>/ELICITATION.md`. (main session) |
+| `yasdd-elicitation` | Tiered batched elicitation (core 8 + extended 10 if complex/greenfield); greenfield detection → seeds CONVENTIONS.md; Christel & Kang watchlist per round; request-coverage check against REQUEST.md; writes ELICITATION.md. (main session) |
+| `yasdd-quick-elicitation` | Quick-win core-only elicitation (8 sections, no extended); greenfield detection; request-coverage check against REQUEST.md; writes `.yasdd/quick-wins/<slug>/ELICITATION.md`. (main session) |
 | `yasdd-architect` | Writes ARCHITECTURE.md; absorbs Rules/Cases/Acceptance + Testing + Parallel batches; 10-point self-check (cap 3 iterations); token-cost awareness; CONVENTIONS.md inheritance. (main session) |
 | `yasdd-quick-architect` | Fuses design + one lean architecture for a quick win; simplified format (no Components/batches/[M#]); Testing inherits CONVENTIONS.md; writes `.yasdd/quick-wins/<slug>/ARCHITECTURE.md`. (main session) |
 | `yasdd-implementer` | Implements ONE component `[M#]`: scoped reads, **code-only** (no tests, no checks), split conformance table (architecture-conformance self-verified; functioning DEFERRED) + changed-files manifest, increments SUMMARY.md, returns FINISHED/ISSUES. (subagent) |

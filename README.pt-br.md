@@ -110,8 +110,8 @@ Cinco ideias centrais fazem o yasdd funcionar:
 
 | Skill | Papel |
 | --- | --- |
-| `yasdd-elicitation` | Elicitação em lote tierada (core 8 + extended 10 se complexo/greenfield); detecção greenfield → semeia CONVENTIONS.md; watchlist Christel & Kang por rodada; escreve ELICITATION.md. (sessão principal) |
-| `yasdd-quick-elicitation` | Elicitação em lote core-only para quick win (8 seções, sem extended); detecção greenfield; escreve `.yasdd/quick-wins/<slug>/ELICITATION.md`. (sessão principal) |
+| `yasdd-elicitation` | Elicitação em lote tierada (core 8 + extended 10 se complexo/greenfield); detecção greenfield → semeia CONVENTIONS.md; watchlist Christel & Kang por rodada; verificação de cobertura contra REQUEST.md; escreve ELICITATION.md. (sessão principal) |
+| `yasdd-quick-elicitation` | Elicitação em lote core-only para quick win (8 seções, sem extended); detecção greenfield; verificação de cobertura contra REQUEST.md; escreve `.yasdd/quick-wins/<slug>/ELICITATION.md`. (sessão principal) |
 | `yasdd-architect` | Escreve ARCHITECTURE.md; absorve Rules/Cases/Acceptance + Testing + Parallel batches; self-check 10 pontos (cap 3 iterações); awareness de custo de tokens; herança CONVENTIONS.md. (sessão principal) |
 | `yasdd-quick-architect` | Fusiona design + uma arquitetura enxuta para quick win; formato simplificado (sem Components/batches/[M#]); Testing herda CONVENTIONS.md; escreve `.yasdd/quick-wins/<slug>/ARCHITECTURE.md`. (sessão principal) |
 | `yasdd-implementer` | Implementa UM componente `[M#]`: leituras focadas, **code-only** (sem testes, sem checks), tabela de conformidade dividida (architecture-conformance auto-verificada; functioning DEFERRED) + manifesto de arquivos alterados, incrementa SUMMARY.md, retorna FINISHED/ISSUES. (subagente) |
