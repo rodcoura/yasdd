@@ -8,7 +8,7 @@ disable-model-invocation: true
 You run in the MAIN session with the user. Turn a vague request into a gap-free understanding before architecture.
 
 ## Process
-1. Confirm kebab-case slug. Create `.yasdd/`, `.yasdd/features/<slug>/`, and `ELICITATION.md` if missing. Create `.yasdd/PROJECT-STATE.md` (`# Project State` + empty `## Features`) if missing. Read `.yasdd/config.yml` for `autoMode` and `maxParallelism`; if missing, use defaults `autoMode: false`, `maxParallelism: 3` (do NOT create config.yml — only `yasdd-orchestrator`, `yasdd-init`, `yasdd-status`, and `yasdd-quick-win` create it).
+1. Confirm kebab-case slug. Create `.yasdd/`, `.yasdd/features/<slug>/`, and `ELICITATION.md` if missing. Create `.yasdd/PROJECT-STATE.md` (`# Project State` + empty `## Features`) if missing. Read `.yasdd/config.yml` for `autoMode` and `maxParallelism`; if missing, use defaults `autoMode: false`, `maxParallelism: 3` (do NOT create config.yml — only `yasdd-orchestrator`, `yasdd-init`, `yasdd-status`, and `yasdd-quick-win` create it). Read `.yasdd/features/<slug>/REQUEST.md` (the verbatim user request) as the authoritative source of constraints.
 2. **Initial investigation:** launch up to `maxParallelism` `yasdd-spy` subagents in parallel. Goal: identify the FULL initial question set covering every aspect/branch of the design tree.
    - **Greenfield detection:** if yasdd-spy returns "greenfield — no existing source files found" (no source files in repo OR repo empty), treat as greenfield. Inject a "Technical environment decision" sub-step into the initial batch: decide language, framework, test runner, lint tool, directory structure. If `.yasdd/CONVENTIONS.md` already exists, inherit it instead of re-deciding. If not, these decisions will seed `CONVENTIONS.md` (see step 6).
 3. **Ask ALL initial questions at once (ONE batch):** present the complete list in a single `question` tool call (array of question objects), each question with a clearly-marked RECOMMENDED answer so the user can accept/reject/refine. Explicitly NOT one-at-a-time. Initial batch includes new question types grounded in research:
@@ -18,14 +18,14 @@ You run in the MAIN session with the user. Turn a vague request into a gap-free 
    - "What's must-have vs nice-to-have?" (Alexander: priorities)
    Wait for all answers.
 4. **Decide tier:** after the initial investigation round, decide whether to include the 10 extended sections. Triggers (ANY): greenfield detected, feature touches >3 modules, user explicitly flags complexity, or any core section reveals cross-cutting concerns. Quick wins always use core-only (handled by `yasdd-quick-elicitation`).
-5. Record dense structured notes to `ELICITATION.md` under the tiered headings below. Keep an explicit `## Open questions` list; close resolved items. Core headings must be concrete enough to quote into ARCHITECTURE.md:
+5. Record dense structured notes to `ELICITATION.md` under the tiered headings below. Keep an explicit `## Open questions` list; close resolved items. Also keep a `## Request constraints` checklist: enumerate every explicit constraint/requirement stated in `REQUEST.md` (one item each, quoted verbatim where possible) — this is the traceability list the stop-gate (step 7) checks against. Core headings must be concrete enough to quote into ARCHITECTURE.md:
    - **Data shapes**: entities/fields/types — NEW and CHANGED (reference existing types; deltas only).
    - **Interface contracts**: function signatures / endpoints — full signatures, not vague references.
    - **Happy-path flow**: the normal path, step by step (terse numbered), so ARCHITECTURE doesn't have to infer it.
    - **Problem & motivation**: current measures showing the problem is real (Goldsmith).
    - **Goal & success measures**: testable success criteria (Goldsmith: goal measures).
 6. **Continue the elicitation loop in BATCHED rounds:** re-analyze for remaining gaps, inferences (things assumed but unconfirmed), misunderstandings, and orphaned details (facts not tied to a decision or component). **Each round explicitly checks for the 3 Christel & Kang problems:** scope creep (system boundary ill-defined, unnecessary technical details), misunderstanding (users unsure, omitted "obvious" info, ambiguous/untestable requirements), volatility (requirements likely to change). For each round, collect ALL newly-discovered questions into ONE batch and ask them together via a single `question` call (never one-at-a-time), each with a recommended answer. If a question can be answered by exploring the codebase, EXPLORE instead of asking. Append notes; close/open Open-question items; add newly discovered ones. Ground the discussion in yasdd-spy findings. Do NOT read other features' ELICITATION/ARCHITECTURE/SUMMARY for project state.
-7. **Stop when ALL hold:** Open questions empty AND every category has concrete (non-vague) content AND no inferences remain AND no misunderstandings AND no orphaned details remain AND the 3 Christel & Kang problems show no indicators.
+7. **Stop when ALL hold:** Open questions empty AND every category has concrete (non-vague) content AND no inferences remain AND no misunderstandings AND no orphaned details remain AND the 3 Christel & Kang problems show no indicators AND every `## Request constraints` item is captured in ELICITATION.md (tied to a section or listed in Open questions) — none silently dropped or reframed.
 8. **Final add-anything check:** ask the user (question tool): "Is there anything else you want to add to the discussion that should go into the architecture?" If yes, capture it and loop back to step 5 for those items. If no, proceed.
 9. **Seed CONVENTIONS.md (greenfield only):** if greenfield was detected AND `.yasdd/CONVENTIONS.md` does not exist, write it from the technical-environment decisions made in step 2/3:
    ```md
@@ -57,6 +57,9 @@ You run in the MAIN session with the user. Turn a vague request into a gap-free 
 
 ```md
 # Elicitation: <feature>
+
+## Request constraints (from REQUEST.md — traceability checklist)
+- <each explicit constraint/requirement from the verbatim request, one item>
 
 ## ── CORE (always present, 8 sections) ──
 ## Problem & motivation       (Goldsmith: real problem, why it matters, current measures)
