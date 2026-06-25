@@ -8,11 +8,11 @@
 
 ## Installation
 
-yasdd is pure markdown — no build step, no dependencies. Place `skills/` and `agents/` where your agent harness reads them.
+yasdd is pure markdown — no build step, no dependencies. Place `skills/` where your agent harness reads them.
 
 ### Recommended: installer script
 
-The `install-to-agents.sh` script copies skills and agents to the locations each tool actually scans:
+The `install-to-agents.sh` script copies skills to the locations each tool actually scans:
 
 ```bash
 # from a repo checkout
@@ -29,16 +29,15 @@ Targets:
 
 | Directory | Contents |
 | --- | --- |
-| `~/.agents/` | skills, agents (cross-tool mirror) |
-| `~/.config/opencode/` | agents (opencode native) |
-| `~/.claude/` | agents, skills (Claude Code native) |
+| `~/.agents/` | skills (cross-tool mirror) |
+| `~/.claude/` | skills (Claude Code native) |
 
 ### Manual: symlinks
 
 Pick one location:
 
-- **Global (all projects):** `~/.agents/` — gives you `~/.agents/skills/yasdd-*/SKILL.md` and `~/.agents/agents/yasdd-spy.md`.
-- **Project-local (one repo):** `.agents/` in the project root — `.agents/skills/...`, `.agents/agents/...`.
+- **Global (all projects):** `~/.agents/` — gives you `~/.agents/skills/yasdd-*/SKILL.md`.
+- **Project-local (one repo):** `.agents/` in the project root — `.agents/skills/...`.
 - **Custom:** any folder your agent harness loads skills from.
 
 Symlink each directory (safe if the folder already holds other skills):
@@ -48,110 +47,125 @@ Symlink each directory (safe if the folder already holds other skills):
 git clone https://github.com/rodcoura/yasdd ~/projects/yasdd
 
 # global install
-mkdir -p ~/.agents/skills ~/.agents/agents
+mkdir -p ~/.agents/skills
 for s in ~/projects/yasdd/skills/*; do ln -sf "$s" ~/.agents/skills/; done
-for a in ~/projects/yasdd/agents/*.md; do ln -sf "$a" ~/.agents/agents/; done
 ```
 
-For a project-local install, repeat the loops with `.agents/` instead of `~/.agents/`. Then load the `yasdd-init` skill in your project to scaffold `.yasdd/` and update `AGENTS.md`.
+For a project-local install, repeat the loop with `.agents/` instead of `~/.agents/`.
 
 ---
 
 ## What is yasdd?
 
-yasdd is a **specless design and delivery framework** made entirely of markdown skills. It gives an AI coding agent a repeatable pipeline to take a vague feature request and turn it into a fully implemented, reviewed feature — without overthinking and without skipping the hard questions.
+yasdd is a **specless design and delivery framework** made entirely of markdown skills. It gives an AI coding agent a repeatable pipeline to take a vague feature request and turn it into a fully implemented, reviewed feature — without overthinking and without skipping the hard questions. It also has a bug fixing pipeline: investigate root cause → fix → verify.
 
-It is not source code. There is no build system. Everything lives in two directories:
+It is not source code. There is no build system. Everything lives in one directory:
 
-- `skills/` — one folder per skill (`<skill>/SKILL.md`); includes the orchestrator playbooks and subagent instructions.
-- `agents/` — subagent definitions (currently `yasdd-spy.md`, the lightweight codebase explorer).
+- `skills/` — one folder per skill (`<skill>/SKILL.md`); includes the feature + bug orchestrators, the plan/grill skill, the investigator skill, and subagent instructions.
 
 ## How it works
 
-Every feature flows through a lean pipeline:
+### Feature pipeline
+
+Every feature flows through a lean, user-gated pipeline:
 
 ```
-0. config              read .yasdd/config.yml
-0b. CONVENTIONS check  if .yasdd/CONVENTIONS.md absent → architect will seed it
-1. ELICITATION         tiered grilling (core 8 + extended 10 if complex/greenfield)  (main session)  → ELICITATION.md
-2. ARCHITECTURE        components [M#] + parallel batches + testing + rules/cases/acceptance + 10-point self-check  (main session)  → ARCHITECTURE.md + STATE.md
-3. GATE                autoMode? true → proceed; false → ask user
-4. IMPLEMENT LOOP      per batch, parallel (up to maxParallelism): code-only implementers per component [M#] → mark done (no checks)
-5. TEST                ONE tester writes unit + e2e tests + runs checks once (from ARCHITECTURE, inherited from CONVENTIONS.md) over the whole feature
-5b. FIX-LOOP           if bugs: orchestrator writes fix-plan inline → implementer with "run all checks" → re-test (cap 3 rounds)
-6. FINAL VERIFY        ONE feature-level review + checks rerun (unconditional) over code + tests (cap 3 rounds)
-7. WRAP UP             update project state
+0. CONFIG     yasdd-feature reads .yasdd/config.yml (creates with defaults if missing)
+1. PLAN        grill + explore → PLAN.md (incl. Test impact, [M#] anchors, inline parallelism)
+2. GATE         user reads PLAN.md → accepts OR asks for changes → loop until accepted
+3. IMPLEMENT    read PLAN.md → launch implementer subagents per [M#], parallel where possible, sequential on deps
+4. GATE         if autoMode:true → skip. If false → user manually tests → vibe-coding fix loop until "no more issues"
+5. TEST         ONE tester writes unit tests + confirms impacted tests pass → returns FINISHED/ISSUES
+6. VERIFY       ONE verifier runs checks + reviews diff + writes SUMMARY.md (Business/Implemented/Files)
 ```
 
-ELICITATION and ARCHITECTURE run in the main session reusing loaded codebase context (zero re-exploration); IMPLEMENT/TEST/VERIFY run as isolated subagents with clean contexts.
+PLAN runs in the main session reusing loaded codebase context (zero re-exploration); IMPLEMENT/TEST/VERIFY run as isolated subagents with clean contexts.
 
-Five core ideas make yasdd work:
+### Bug fixing pipeline
 
-- **Architecture-level, component-partitioned implementation**: ARCHITECTURE.md contains the spec content (Rules/Cases/Acceptance with anchors) + testing architecture + parallel batch plan. Implementation is driven by `Components [M#]` — the LLM's natural todo-list building becomes the plan. No specs decomposition step.
-- **Acceptance = Given/When/Then**: the happy path + each Case, each checkable by a test. This makes the "functioning architecture" rule verifiable instead of self-reported.
-- **Main-session context reuse**: ELICITATION and ARCHITECTURE run inline in the main session, reusing the codebase context loaded during elicitation — no re-exploration subagents, lower token usage.
-- **Parallel implementation via deferred testing**: the implementer is code-only (no tests, no checks) so components with disjoint file sets can run in parallel batches (pre-computed in ARCHITECTURE's `Parallel batches` section). The tester writes all tests + runs checks once after all components land. Mid-flight batch update (in-memory) handles unforeseen file conflicts.
-- **One feature-level verify**: instead of a verifier per spec, a single verifier runs after the TEST phase — it runs checks once (unconditional rerun; commands inherited from CONVENTIONS.md via ARCHITECTURE) across all changed files (code + tests) and reviews the whole feature diff for conformance + code review, then attributes findings to components `[M#]` for routing. Lower token usage, shared context.
-- **FINISHED/ISSUES protocol**: the implementer (and tester) end their output with a status token. The orchestrator parses it: `FINISHED` → mark done; `ISSUES` → surface to the user (or, in autoMode, mark the component blocked and continue).
+Every bug fix flows through a lean, user-gated pipeline:
+
+```
+0. CONFIG       yasdd-bug reads .yasdd/config.yml (creates with defaults if missing)
+1. INVESTIGATE   trace root cause + git blame + blast radius → FIX.md (incl. fix steps [M#], Test impact)
+2. GATE          user reads FIX.md → accepts root cause + fix approach OR asks for changes → loop until accepted
+3. FIX           read FIX.md → launch implementer subagents per [M#], code-only, parallel where possible
+4. GATE          if autoMode:true → skip. If false → user manually tests → vibe-coding fix loop until "no more issues"
+5. TEST          ONE tester writes regression unit tests + confirms impacted tests pass → returns FINISHED/ISSUES
+6. VERIFY        ONE verifier runs checks + reviews diff + writes SUMMARY.md (Business/Implemented/Files)
+```
+
+INVESTIGATE runs in the main session reusing loaded codebase context; FIX/TEST/VERIFY run as isolated subagents with clean contexts.
+
+Core ideas that make yasdd work:
+
+- **One PLAN.md, no specs decomposition**: the plan skill grills the user (one question at a time with a recommended answer), launches yasdd-spy for codebase investigation, and writes a single PLAN.md carrying components `[M#]` + inline parallelism markers + Rules/Cases/Acceptance with anchors + Test impact. No separate elicitation/architecture artifacts.
+- **Inline parallelism markers**: steps carry `*parallel with N*` or `*depends on N*` markers — no separate "Parallel batches" section. The orchestrator (feature or bug) reads the markers to decide what runs in parallel vs sequentially.
+- **Acceptance = Given/When/Then**: the happy path + each Case, each checkable by a test. This makes the plan verifiable instead of self-reported.
+- **Test impact coverage**: PLAN.md lists NEW tests (for `[A#]`/`[C#]`/`[R#]`) AND IMPACTED existing tests (source file → test file mapping, must stay green). The tester confirms both. This catches breakage of existing tests at TEST phase, not deferred to VERIFY.
+- **Manual test gate = vibe-coding loop**: between implementation and unit testing, if `autoMode: false`, the user manually exercises the system and reports issues — the implementer fixes, the user re-tests, loop until "no more issues". No cap. Informal. User drives. Skipped when `autoMode: true`.
+- **Code-only implementer + deferred testing**: the implementer is code-only (no tests, no checks) so components with disjoint file sets can run in parallel. The tester writes all unit tests + runs checks once after all components land.
+- **One feature-level verify**: a single verifier runs after the TEST phase — it runs checks once (unconditional rerun) across all changed files and reviews the whole feature diff for conformance + code review, then writes SUMMARY.md.
+- **FINISHED/ISSUES protocol**: the implementer and tester end their output with a status token. The orchestrator parses it: `FINISHED` → proceed; `ISSUES` → fix-loop or surface to the user.
+- **No state tracking**: there is no PROJECT-STATE.md or STATE.md. The orchestrator detects continuation by inspecting artifacts (PLAN.md/FIX.md presence, SUMMARY.md presence, git diff). Two artifacts per feature or bug: PLAN.md/FIX.md + SUMMARY.md.
 
 ## Skills
 
-### Orchestrator skills (entry points)
-
-| Skill | What it does |
-| --- | --- |
-| `yasdd-orchestrator` | Start a new feature: elicitation → architecture (with self-check + batches + testing) → gate → implement by component → test → verify. |
-| `yasdd-quick-win` | Start a single-shot quick win: elicitation → one fused architecture → implementation → light review. |
-| `yasdd-implement <slug>` | Resume implementing a single feature's components from its STATE.md. |
-| `yasdd-continue` | Resume **every** in-progress feature from the exact step where it stopped (elicitation, architecture, gate, implement, test, verify, or wrap up). |
-| `yasdd-status [slug]` | Print project + feature component status. |
-
-### Phase & subagent skills
+`yasdd-feature` (features) and `yasdd-bug` (bug fixes) are the entry points. The user may also call specific skills manually if they want.
 
 | Skill | Role |
 | --- | --- |
-| `yasdd-elicitation` | Tiered batched elicitation (core 8 + extended 10 if complex/greenfield); greenfield detection → seeds CONVENTIONS.md; Christel & Kang watchlist per round; request-coverage check against REQUEST.md; writes ELICITATION.md. (main session) |
-| `yasdd-quick-elicitation` | Quick-win core-only elicitation (8 sections, no extended); greenfield detection; request-coverage check against REQUEST.md; writes `.yasdd/quick-wins/<slug>/ELICITATION.md`. (main session) |
-| `yasdd-architect` | Writes ARCHITECTURE.md; absorbs Rules/Cases/Acceptance + Testing + Parallel batches; 10-point self-check (cap 3 iterations); token-cost awareness; CONVENTIONS.md inheritance. (main session) |
-| `yasdd-quick-architect` | Fuses design + one lean architecture for a quick win; simplified format (no Components/batches/[M#]); Testing inherits CONVENTIONS.md; writes `.yasdd/quick-wins/<slug>/ARCHITECTURE.md`. (main session) |
-| `yasdd-implementer` | Implements ONE component `[M#]`: scoped reads, **code-only** (no tests, no checks), split conformance table (architecture-conformance self-verified; functioning DEFERRED) + changed-files manifest, increments SUMMARY.md, returns FINISHED/ISSUES. (subagent) |
-| `yasdd-tester` | Writes unit + e2e tests after all components land; reads ARCHITECTURE.md (Testing + Acceptance `[A#]`); runs checks once (commands inherited from CONVENTIONS.md via ARCHITECTURE); returns FINISHED + test manifest, or ISSUES with classified findings (test-bug vs impl-bug, attributed to components `[M#]`). (subagent) |
-| `yasdd-verifier` | ONE feature-level research-only review of code **+ tests** + a **checks rerun** (unconditional; runs lint/typecheck/tests once per feature, across all changed files; commands inherited from CONVENTIONS.md via ARCHITECTURE). Attributes findings to components `[M#]`. (subagent) |
-| `yasdd-goback` | Updates an implemented feature with one CHANGES/NN delta in ARCHITECTURE format. (main session) |
-| `yasdd-doubt` | Explains a feature (read-only). (main session) |
-| `yasdd-init` | Scaffolds `.yasdd/` and config; does NOT create CONVENTIONS.md. (main session) |
-| `yasdd-clear` | Wipes features, quick-wins, CHANGES, and CONVENTIONS.md (keeps config). (main session) |
+| `yasdd-feature` | Feature pipeline entry point. Config bootstrap, continuation detection, pipeline driver: plan → implement → manual test → test → verify. |
+| `yasdd-bug` | Bug fixing pipeline entry point. Config bootstrap, continuation detection, pipeline driver: investigate → fix → manual test → test → verify. |
+| `yasdd-plan` | Grilling + codebase exploration → single PLAN.md. One question at a time with recommended answer, challenge vague terms, cross-check claims vs code. Detects impacted existing tests. (main session) |
+| `yasdd-investigator` | Bug investigation + root cause analysis → single FIX.md. Traces defects backward from symptoms, runs git blame to identify the commits that introduced the bug, assesses blast radius (level 1–5), writes fix steps `[M#]` + Rules/Cases/Acceptance + Test impact. (main session) |
+| `yasdd-implementer` | Implements ONE component `[M#]`: scoped reads, **code-only** (no tests, no checks), split conformance table (plan-conformance self-verified; functioning DEFERRED) + changed-files manifest, returns FINISHED/ISSUES. Works with both PLAN.md (features) and FIX.md (bugs). (subagent) |
+| `yasdd-tester` | Writes UNIT TESTS ONLY (no e2e/integration; unit tests chain real functions to cover the business flow) after all components land; reads CONVENTIONS.md (commands) + plan artifact (Acceptance `[A#]` + Test impact); confirms impacted tests stay green; runs checks once; returns FINISHED or ISSUES with classified findings (test-bug vs impl-bug vs impl-bug-impacted). (subagent) |
+| `yasdd-verifier` | ONE feature/bug-level research-only review of code + unit tests + a checks rerun (unconditional; runs lint/typecheck/tests once per feature/bug, across all changed files; commands from CONVENTIONS.md). Cross-references Test impact. Attributes findings to components `[M#]`. Writes SUMMARY.md. (subagent) |
+| `yasdd-spy` | Lightweight code analyst that traces feature implementations from entry points to data storage. Auto-invoked for codebase investigation + greenfield detection. Detects impacted existing tests. (auto-invoked; runs on a fast inexpensive model) |
 
-### yasdd-spy (codebase exploration agent)
+### yasdd-spy (auto-invoked)
 
-yasdd ships a dedicated **lightweight** subagent, `yasdd-spy`, for all codebase exploration and feature-tracing tasks. It is defined in `agents/yasdd-spy.md` (frontmatter: `name`, `description`, `mode: subagent`) and intended to run on a fast, inexpensive model (e.g. `anthropic/claude-haiku-4-5`) so that ELICITATION, GOBACK, and VERIFY phases can launch multiple parallel spies without significant token cost.
+`yasdd-spy` is the only skill with `disable-model-invocation: false` — it is auto-invoked whenever a skill calls for codebase investigation. It is intended to run on a fast, inexpensive model (e.g. `anthropic/claude-haiku-4-5`) so that the PLAN phase can launch multiple parallel spies without significant token cost.
 
-**Developers should use `yasdd-spy`** (not the harness's generic `explore` agent) whenever a skill calls for codebase investigation. The spy traces feature implementations from entry points to data storage, returning `file:line` references and essential-files lists. It also detects **greenfield** repos (no source files) and returns a greenfield signal so the elicitation skill can seed `CONVENTIONS.md`.
+The spy traces feature implementations from entry points to data storage, returning `file:line` references and essential-files lists. It also detects **greenfield** repos (no source files) and returns a greenfield signal so the plan skill can seed `CONVENTIONS.md`. When asked, it maps source files → existing test files for the Test impact section.
 
-To configure a specific model, edit `agents/yasdd-spy.md` and add or change a `model:` frontmatter field (support depends on your agent harness).
+To configure a specific model, edit `skills/yasdd-spy/SKILL.md` and add a `model:` frontmatter field (support depends on your agent harness).
 
 ## Quick start
 
-1. Load the `yasdd-init` skill once in your project (creates `.yasdd/`, `config.yml`, `PROJECT-STATE.md`, and updates `AGENTS.md`).
-2. Load the `yasdd-orchestrator` skill and answer the batched questions about your feature.
-3. The pipeline authors `ELICITATION.md → ARCHITECTURE.md → STATE.md` (all in the main session), then asks to proceed (unless `autoMode: true`).
-4. The orchestrator reads ARCHITECTURE's `Parallel batches`; implementers run code-only in parallel per batch (up to `maxParallelism`), one per component `[M#]`. Then ONE tester writes all tests + runs checks once (commands inherited from CONVENTIONS.md via ARCHITECTURE). Then ONE feature-level verify runs over code + tests (fix → re-test/re-verify, up to 3× each).
-5. Done? `SUMMARY.md` has grown with one bullet per implementation across `## Business` (PM language), `## Implemented` (architecture), and `## Files` (changed files); `PROJECT-STATE.md` is updated.
+### Feature implementation
+
+1. Load the `yasdd-feature` skill with your feature request as arguments.
+2. The orchestrator creates `.yasdd/config.yml` (if missing), derives a slug, and loads `yasdd-plan`.
+3. The plan skill grills you (one question at a time with recommended answers), launches yasdd-spy subagents for codebase investigation, and writes `PLAN.md`. It validates the plan and presents it to you for acceptance.
+4. On accept, the orchestrator reads PLAN.md's steps with `[M#]` anchors + inline parallelism markers. Implementers run code-only in parallel (up to `maxParallelism`), one per component `[M#]`.
+5. If `autoMode: false`, you manually test the running system and report issues (vibe-coding fix loop until "no more issues"). Then ONE tester writes unit tests + confirms impacted tests pass + runs checks once. Then ONE feature-level verify runs over code + tests (fix → re-verify, up to 3×) and writes SUMMARY.md.
+6. Done? `SUMMARY.md` has `## Business` (PM language), `## Implemented` (architecture), `## Files` (changed files).
+
+### Bug fixing
+
+1. Load the `yasdd-bug` skill with your bug report as arguments.
+2. The orchestrator creates `.yasdd/config.yml` (if missing), derives a slug, and loads `yasdd-investigator`.
+3. The investigator parses the bug report, traces the data flow backward from the entry point to the root cause, runs `git blame` to identify the commits that introduced the bug (Caused By), assesses the blast radius (level 1–5), and writes `FIX.md` with fix steps `[M#]` + Rules/Cases/Acceptance + Test impact. It presents the investigation to you for acceptance.
+4. On accept, the orchestrator reads FIX.md's fix steps with `[M#]` anchors. Implementers run code-only (up to `maxParallelism`), one per component `[M#]`.
+5. If `autoMode: false`, you manually test the running system and confirm the bug is fixed (vibe-coding fix loop until "no more issues"). Then ONE tester writes regression unit tests + confirms impacted tests pass + runs checks once. Then ONE bug-level verify runs over code + tests (fix → re-verify, up to 3×) and writes SUMMARY.md.
+6. Done? `SUMMARY.md` has `## Business` (PM language), `## Implemented` (architecture), `## Files` (changed files).
 
 ## Configuration
 
 `.yasdd/config.yml`:
 
 ```yaml
-autoMode: false      # true = architecture → straight to implementation (no gate pause)
-maxParallelism: 3    # cap on parallel subagent calls per step + batch size
+autoMode: false        # true = skip manual test gate, proceed straight to TEST; false = pause for manual testing
+maxParallelism: 3      # cap on parallel subagent calls per step + batch size
 ```
 
-Check commands (lint, typecheck, test) are **project-wide**, captured once in `.yasdd/CONVENTIONS.md` (seeded by elicitation on greenfield, or by the architect on brownfield first feature). Every feature's ARCHITECTURE.md inherits them. This eliminates per-feature test-framework rediscovery.
+Check commands (lint, typecheck, test) are **project-wide**, captured once in `.yasdd/CONVENTIONS.md` (seeded by the plan skill on the first feature). The tester + verifier read CONVENTIONS.md directly. Bug fixes inherit the same CONVENTIONS.md.
 
 ## CONVENTIONS.md
 
-A project-wide file at `.yasdd/CONVENTIONS.md` captures the project's technical conventions **once** so every feature's ARCHITECTURE.md inherits them instead of re-discovering:
+A project-wide file at `.yasdd/CONVENTIONS.md` captures the project's technical conventions **once** so the tester + verifier inherit them directly instead of re-discovering:
 
 ```md
 # Project Conventions
@@ -178,56 +192,33 @@ Config: <e.g., .env, config/>
 
 | Scenario | When CONVENTIONS.md is created |
 |----------|--------------------------------|
-| **Greenfield (first feature)** | Elicitation's "Technical environment decision" sub-step seeds it before architecture runs |
-| **Brownfield (no CONVENTIONS.md yet)** | Architect detects from `package.json`/`Makefile`/`AGENTS.md` on first feature, writes it so subsequent features inherit |
-| **Already exists** | Architect inherits (never re-decides); elicitation skips technical-environment sub-step |
-
-The `yasdd-init` skill does NOT create CONVENTIONS.md — it's seeded by elicitation/architect on first feature, not at init time (init doesn't know the tech stack yet).
+| **Greenfield (first feature)** | The plan skill's "Technical environment decision" sub-step seeds it before implementation runs |
+| **Brownfield (no CONVENTIONS.md yet)** | The plan skill detects from `package.json`/`Makefile`/`AGENTS.md` on first feature, writes it so subsequent features inherit |
+| **Already exists** | The plan skill inherits (never re-decides) |
 
 ## What lives where
 
 ```
 .yasdd/
-  config.yml
-  CONVENTIONS.md                     # project-wide tech conventions (seeded once, inherited by all features)
-  PROJECT-STATE.md                   # all features at a glance
+  config.yml                         # autoMode + maxParallelism
+  CONVENTIONS.md                     # project-wide tech conventions (seeded once; tester + verifier read directly)
   features/<slug>/
-    REQUEST.md                       # the original user request (raw $ARGUMENTS)
-    ELICITATION.md                   # tiered: core 8 + extended 10 (if complex/greenfield)
-    ARCHITECTURE.md                  # components [M#] + batches + testing + rules/cases/acceptance
-    STATE.md                         # per-component impl/test/verify status
-    SUMMARY.md                       # Business / Implemented / Files (appended per implementation)
-    CHANGES/NN-<change-slug>.md      # goback deltas in ARCHITECTURE format
-  quick-wins/<slug>/
-    REQUEST.md                       # the original user request (raw $ARGUMENTS)
-    ELICITATION.md                   # core-only (8 sections)
-    ARCHITECTURE.md                  # simplified format (no Components/batches/[M#])
-    SUMMARY.md                       # Business / Implemented / Files
+    PLAN.md                          # the single source of truth (goal, steps [M#], data, interfaces, rules, cases, acceptance, test impact, critical files, verification)
+    SUMMARY.md                       # Business / Implemented / Files (written by verifier)
+  bugs/<bug-slug>/
+    FIX.md                           # investigation report + fix plan (root cause, data flow trace, caused by, blast radius, fix steps [M#], rules, cases, acceptance, test impact)
+    SUMMARY.md                       # Business / Implemented / Files (written by verifier)
 ```
 
-Component status markers in STATE.md: `- [ ]` not started · `- [~]` blocked (failed test or verify) · `- [x]` fully done (impl + test + verify). During implementation the top-level marker stays `[ ]`; it only flips to `[x]` once all three sub-markers are done. Each component has `impl`/`test`/`verify` sub-markers for precise fix-loop routing.
-
-### Quick wins
-
-The `yasdd-quick-win` skill collapses the full SDD pipeline into a single-shot, stateless flow:
-
-```
-ELICITATION (core-only) → ARCHITECTURE (simplified, main session) → IMPLEMENTATION (code-only) → TEST → LIGHT CODE REVIEW
-```
-
-- One `ARCHITECTURE.md` per quick win — no `specs/` directory, no `Components` with `[M#]`, no `Parallel batches`.
-- No `STATE.md`; inspect the folder directly.
-- No `PROJECT-STATE.md` updates.
-- Testing section inherits from CONVENTIONS.md (or detects at runtime if absent).
+Two artifacts per feature: `PLAN.md` (written by the plan skill, accepted by the user) and `SUMMARY.md` (written by the verifier at the end). Two artifacts per bug: `FIX.md` (written by the investigator, accepted by the user) and `SUMMARY.md` (written by the verifier at the end).
 
 ## Greenfield support
 
 yasdd detects greenfield repos (no source files) via `yasdd-spy` and handles them gracefully:
 
 - `yasdd-spy` returns "greenfield — no existing source files found" instead of failing.
-- The elicitation skill injects a "Technical environment decision" sub-step (language, framework, test runner, lint, directory structure).
-- These decisions seed `CONVENTIONS.md` before architecture runs.
-- The first feature is treated as **architecture-defining** — the architect writes the foundational structure (directory layout, shared utilities, base configuration).
+- The plan skill injects a "Technical environment decision" sub-step (language, framework, test runner, lint, directory structure).
+- These decisions seed `CONVENTIONS.md` before implementation runs.
 - Subsequent features inherit `CONVENTIONS.md` — no re-deciding.
 
-This does NOT add a separate scaffolding step — it folds naturally into the existing elicitation → architecture flow.
+This does NOT add a separate scaffolding step — it folds naturally into the existing plan flow.
