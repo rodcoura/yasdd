@@ -9,18 +9,22 @@ Runs in the MAIN session with the user. Turn a vague request into a PRAGMATIC ga
 
 ## Process
 
-1. **Confirm slug.** Create `.yasdd/`, `.yasdd/features/<slug>/` if missing. Read `.yasdd/config.yml` for `autoMode` and `maxParallelism`; if missing, use defaults `autoMode: false`, `maxParallelism: 3` (do NOT create config.yml — only `yasdd-feature` creates it). Capture the verbatim user request at the top of PLAN.md under `## Request constraints`.
+1. **Confirm slug.** Create `.yasdd/`, `.yasdd/features/<slug>/` if missing. Read `.yasdd/config.yml` for `autoMode`, `maxParallelism`, and `explorerAgentName`; if missing, use defaults `autoMode: false`, `maxParallelism: 3`, `explorerAgentName: ""` (do NOT create config.yml — only `yasdd-feature` creates it). Capture the verbatim user request at the top of PLAN.md under `## Request constraints`.
 
-2. **EXPLORE:** launch minimum-necessary `yasdd-spy` subagents (1 default; up to `maxParallelism` only when scope is uncertain). Assign each a DISTINCT concern area:
+2. **EXPLORE:** codebase investigation via the `yasdd-spy` skill. How it runs depends on `explorerAgentName`:
+   - **If `explorerAgentName` is set:** launch that named subagent (up to `maxParallelism` in parallel when scope is uncertain; 1 default), passing the main feature request + instruction to load the `yasdd-spy` skill (skill tool; if unavailable, read `~/.agents/skills/yasdd-spy/SKILL.md`). Assign each a DISTINCT concern area (see below).
+   - **If `explorerAgentName` is empty:** load the `yasdd-spy` skill directly in this MAIN session (skill tool; if unavailable, read `~/.agents/skills/yasdd-spy/SKILL.md`) and perform the exploration inline. Run the concern areas sequentially (no parallelism in-session).
+
+   **Concern areas** (assign per spy or explore each in turn):
    - **Area 1 — Data shapes & entities:** existing types, schemas, models, migrations, storage shapes touched by the feature.
    - **Area 2 — Interfaces & happy-path flows:** existing endpoints, handlers, call chains, user-facing flows the feature extends or parallels.
    - **Area 3 — Patterns, conventions & dependencies:** reusable functions/types, analogous features as implementation templates, cross-cutting concerns.
    If `maxParallelism < 3`, collapse lower-priority areas into the available spies (keep Area 1 + Area 2 first). Goal: ground every subsequent question in what the code actually does today.
-   - **Greenfield detection:** if yasdd-spy returns "greenfield — no existing source files found", treat as greenfield. Inject a "Technical environment decision" sub-step into the question batch: decide language, framework, test runner, lint tool, directory structure. If `.yasdd/CONVENTIONS.md` already exists, inherit it. If not, these decisions will seed CONVENTIONS.md (step 5).
+   - **Greenfield detection:** if the exploration (subagent or in-session) returns "greenfield — no existing source files found", treat as greenfield. Inject a "Technical environment decision" sub-step into the question batch: decide language, framework, test runner, lint tool, directory structure. If `.yasdd/CONVENTIONS.md` already exists, inherit it. If not, these decisions will seed CONVENTIONS.md (step 5).
    - **Test impact detection:** for each source file the feature will touch, check whether a corresponding test file exists by the project's convention (read CONVENTIONS.md's `Test location` glob; e.g. colocated `foo.ts` → `foo.test.ts`, or separate `foo.ts` → `tests/test_foo.py`). Record existing test files → they go into PLAN.md's `Test impact: IMPACTED` section.
 
 3. **GRILL:** ask one question at a time via the `question` tool, each with your recommended answer. Inspect the codebase and available local context before asking questions that can be answered without the user. Walk down each branch of the design tree, resolving dependencies between decisions one by one. Each question MUST:
-   - **Carry rich codebase CONTEXT** — what the code currently does (file:line), what the spy found, the existing pattern/type at play — so the developer understands it without needing code awareness.
+   - **Carry rich codebase CONTEXT** — what the code currently does (file:line), what the exploration found, the existing pattern/type at play — so the developer understands it without needing code awareness.
    - **Be open-ended + genuinely curious.** Frame questions to invite explanation, not yes/no.
    - **Offer a recommended answer** — grounded in code evidence — but invite correction.
    - **Challenge vague terms** such as "user", "account", "tenant", "job", "workflow", "session", or "state" until their meaning is precise in this codebase.

@@ -13,8 +13,9 @@ You are the feature pipeline entry point. The user may also call specific skills
    ```yaml
    autoMode: false
    maxParallelism: 3
+   explorerAgentName: ""
    ```
-   Keep `autoMode` and `maxParallelism` in context.
+   Keep `autoMode`, `maxParallelism`, and `explorerAgentName` in context. `explorerAgentName` = name of the subagent to spawn for codebase exploration (it will be instructed to load the `yasdd-spy` skill); empty = explore in the main session (load `yasdd-spy` directly, no subagent).
 
 2. **MODE DETECTION:**
    - If `$ARGUMENTS` matches an existing feature folder (`.yasdd/features/<slug>/` exists) → **CONTINUATION** (step 3).
@@ -28,7 +29,7 @@ You are the feature pipeline entry point. The user may also call specific skills
 
 ## Pipeline
 
-4. **PLAN** (MAIN session, skill `yasdd-plan`): load the skill `yasdd-plan` (skill tool; if unavailable, read `~/.agents/skills/yasdd-plan/SKILL.md`) and run it. It grills the user (one question at a time with recommended answer), launches `yasdd-spy` subagents for codebase investigation, detects impacted existing tests, and writes `PLAN.md` (components `[M#]` + inline parallelism markers + Rules/Cases/Acceptance with anchors + Test impact). It seeds `CONVENTIONS.md` if absent (greenfield: from user decisions; brownfield: detected from `package.json`/`Makefile`/`AGENTS.md`). It validates the plan and presents it to the user for acceptance. Loop until the user accepts. Then return to the feature orchestrator, which proceeds to IMPLEMENT.
+4. **PLAN** (MAIN session, skill `yasdd-plan`): load the skill `yasdd-plan` (skill tool; if unavailable, read `~/.agents/skills/yasdd-plan/SKILL.md`) and run it. It grills the user (one question at a time with recommended answer), runs codebase exploration via `yasdd-spy` (subagents if `explorerAgentName` is set, or in-session if empty), detects impacted existing tests, and writes `PLAN.md` (components `[M#]` + inline parallelism markers + Rules/Cases/Acceptance with anchors + Test impact). It seeds `CONVENTIONS.md` if absent (greenfield: from user decisions; brownfield: detected from `package.json`/`Makefile`/`AGENTS.md`). It validates the plan and presents it to the user for acceptance. Loop until the user accepts. Then return to the feature orchestrator, which proceeds to IMPLEMENT.
 
 5. **IMPLEMENT** (parallel per step, code-only, no checks):
    a. `todowrite`: one todo per component `[M#]`.

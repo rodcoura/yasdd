@@ -99,7 +99,7 @@ INVESTIGATE roda na sessão principal reutilizando o contexto de código carrega
 
 Ideias centrais que fazem o yasdd funcionar:
 
-- **Um PLAN.md, sem decomposição de specs**: a skill de plan faz grill no usuário (uma pergunta por vez com resposta recomendada), lança yasdd-spy para investigação do codebase, e escreve um único PLAN.md carregando componentes `[M#]` + marcadores de paralelismo inline + Rules/Cases/Acceptance com anchors + Test impact. Sem artifacts separados de elicitation/architecture.
+- **Um PLAN.md, sem decomposição de specs**: a skill de plan faz grill no usuário (uma pergunta por vez com resposta recomendada), roda exploração do codebase via `yasdd-spy` (subagentes ou na sessão), e escreve um único PLAN.md carregando componentes `[M#]` + marcadores de paralelismo inline + Rules/Cases/Acceptance com anchors + Test impact. Sem artifacts separados de elicitation/architecture.
 - **Marcadores de paralelismo inline**: os passos carregam `*parallel with N*` ou `*depends on N*` — sem seção separada de "Parallel batches". O orquestrador (feature ou bug) lê os marcadores para decidir o que roda em paralelo vs sequencial.
 - **Acceptance = Given/When/Then**: o caminho feliz + cada Case, cada um verificável por um teste. Isso torna o plan verificável em vez de autorreportado.
 - **Cobertura de testes impactados**: o PLAN.md lista testes NEW (para `[A#]`/`[C#]`/`[R#]`) E testes IMPACTED existentes (mapeamento arquivo fonte → arquivo de teste, devem ficar verde). O tester confirma ambos. Isso pega quebra de testes existentes na fase TEST, não defere para VERIFY.
@@ -124,13 +124,16 @@ Ideias centrais que fazem o yasdd funcionar:
 | `yasdd-verifier` | UMA revisão a nível de feature/bug somente pesquisa de código + testes unitários + um rerun de checks (incondicional; roda lint/typecheck/tests uma vez por feature/bug, sobre todos os arquivos alterados; comandos do CONVENTIONS.md). Checa Test impact. Atribui achados aos componentes `[M#]`. Escreve SUMMARY.md. (subagente) |
 | `yasdd-spy` | Analista de código leve que rastreia implementações de feature dos entry points até o armazenamento de dados. Auto-invocado para investigação de codebase + detecção greenfield. Detecta testes impactados existentes. (auto-invocado; roda em modelo rápido e barato) |
 
-### yasdd-spy (auto-invocado)
+### yasdd-spy (exploração do codebase)
 
-`yasdd-spy` é a única skill com `disable-model-invocation: false` — é auto-invocada sempre que uma skill pede investigação de codebase. Projetada para rodar em um modelo rápido e barato (ex.: `anthropic/claude-haiku-4-5`) para que a fase PLAN possa lançar múltiplos spies em paralelo sem custo significativo de tokens.
+`yasdd-spy` é a única skill com `disable-model-invocation: false` — é carregada para investigação de codebase durante a fase PLAN. Ela rastreia implementações de feature dos entry points até o armazenamento de dados, retornando referências `file:line` e listas de arquivos essenciais. Também detecta repos **greenfield** (sem arquivos fonte) e retorna um sinal de greenfield para que a skill de plan semeie o `CONVENTIONS.md`. Quando pedido, mapeia arquivos fonte → arquivos de teste existentes para a seção Test impact.
 
-O spy rastreia implementações de feature dos entry points até o armazenamento de dados, retornando referências `file:line` e listas de arquivos essenciais. Ele também detecta repos **greenfield** (sem arquivos fonte) e retorna um sinal de greenfield para que a skill de plan semeie o `CONVENTIONS.md`. Quando pedido, mapeia arquivos fonte → arquivos de teste existentes para a seção Test impact.
+**Como roda** depende da config `explorerAgentName`:
 
-Para configurar um modelo específico, edite `skills/yasdd-spy/SKILL.md` e adicione ou altere um campo `model:` no frontmatter (suporte depende do agent harness).
+- **`explorerAgentName` definido** (ex.: `"general-purpose"`): a skill de plan lança esse subagente nomeado, passando o pedido de feature + instrução para carregar a skill `yasdd-spy`. Múltiplos spies podem rodar em paralelo (até `maxParallelism`) quando o escopo é incerto — cada um com uma área de interesse distinta.
+- **`explorerAgentName` vazio** (default): a skill de plan carrega `yasdd-spy` diretamente na sessão principal e explora inline (sequencial, sem subagente). Reutiliza o contexto de código já carregado sem overhead de subagente.
+
+Para rodar o spy em um modelo específico, edite `skills/yasdd-spy/SKILL.md` e adicione ou altere um campo `model:` no frontmatter (suporte depende do agent harness).
 
 ## Início rápido
 
@@ -138,7 +141,7 @@ Para configurar um modelo específico, edite `skills/yasdd-spy/SKILL.md` e adici
 
 1. Carregue a skill `yasdd-feature` com seu pedido de feature como argumentos.
 2. O orquestrador cria `.yasdd/config.yml` (se faltar), deriva um slug, e carrega `yasdd-plan`.
-3. A skill de plan faz grill em você (uma pergunta por vez com respostas recomendadas), lança subagentes yasdd-spy para investigação do codebase, e escreve `PLAN.md`. Ela valida o plan e apresenta para você aceitar.
+3. A skill de plan faz grill em você (uma pergunta por vez com respostas recomendadas), roda exploração do codebase via `yasdd-spy` (subagentes se `explorerAgentName` estiver definido, ou na sessão se vazio), e escreve `PLAN.md`. Ela valida o plan e apresenta para você aceitar.
 4. Ao aceitar, o orquestrador lê os passos do PLAN.md com anchors `[M#]` + marcadores de paralelismo inline. Implementadores rodam code-only em paralelo (até `maxParallelism`), um por componente `[M#]`.
 5. Se `autoMode: false`, você testa manualmente o sistema rodando e reporta problemas (loop de correção vibe-coding até "no more issues"). Depois UM tester escreve testes unitários + confirma testes impactados + roda checks uma vez. Depois UMA verificação a nível de feature roda sobre código + testes (corrigir → re-verificar, até 3×) e escreve SUMMARY.md.
 6. Pronto? `SUMMARY.md` tem `## Business` (linguagem de PM), `## Implemented` (arquitetura), `## Files` (arquivos alterados).
@@ -159,6 +162,7 @@ Para configurar um modelo específico, edite `skills/yasdd-spy/SKILL.md` e adici
 ```yaml
 autoMode: false        # true = pula manual test gate, direto para TEST; false = pausa para teste manual
 maxParallelism: 3      # limite de chamadas de subagentes paralelos por passo + tamanho do batch
+explorerAgentName: ""   # nome do subagente para exploração do codebase (carrega a skill yasdd-spy); vazio = explorar na sessão principal
 ```
 
 Comandos de check (lint, typecheck, test) são **do projeto todo**, capturados uma vez no `.yasdd/CONVENTIONS.md` (semeado pela skill de plan na primeira feature). O tester + o verifier leem o CONVENTIONS.md diretamente. Correções de bugs herdam o mesmo CONVENTIONS.md.

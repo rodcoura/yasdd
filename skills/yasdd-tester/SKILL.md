@@ -5,7 +5,7 @@ disable-model-invocation: true
 ---
 # yasdd-tester
 
-Input: feature slug + plan artifact path (PLAN.md for features, FIX.md for bug fixes) + CONVENTIONS.md path + aggregated conformance tables (with file:line) + changed-files manifest (from implementers) + config values (`autoMode`, `maxParallelism`) passed in the subagent prompt. Read `CONVENTIONS.md` first for check commands; read the plan artifact for the spec (Acceptance/Cases/Rules + Test impact). Do NOT launch yasdd-spy subagents or explore the whole repo.
+Input: feature slug + plan artifact path (PLAN.md for features, FIX.md for bug fixes) + CONVENTIONS.md path + aggregated conformance tables (with file:line) + changed-files manifest (from implementers) + config values (`autoMode`, `maxParallelism`) passed in the subagent prompt. Read `CONVENTIONS.md` first for check commands; read the plan artifact for the spec (Acceptance/Cases/Rules + Test impact). Do NOT launch explorer subagents or load `yasdd-spy` (no codebase exploration).
 
 You are an isolated subagent with a clean context. You may read `CONVENTIONS.md` (for `Framework`, `Runner cmd`, `Lint cmd`, `Typecheck cmd`, `Test location`) and the plan artifact at the path provided (PLAN.md at `.yasdd/features/<slug>/PLAN.md` for features, or FIX.md at `.yasdd/bugs/<slug>/FIX.md` for bug fixes — both carry Acceptance cases `[A#]`, Cases `[C#]`, Rules `[R#]`, Components `[M#]` file-scope, and a `Test impact` section), and the changed-files manifest. Do NOT read any other feature artifacts — the plan artifact is your handoff for the spec; `CONVENTIONS.md` is your handoff for commands.
 

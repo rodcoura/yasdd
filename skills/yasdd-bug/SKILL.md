@@ -13,8 +13,9 @@ You are the bug fixing pipeline entry point. The user may also call specific ski
    ```yaml
    autoMode: false
    maxParallelism: 3
+   explorerAgentName: ""
    ```
-   Keep `autoMode` and `maxParallelism` in context.
+   Keep `autoMode`, `maxParallelism`, and `explorerAgentName` in context. `explorerAgentName` = name of the subagent to spawn for codebase exploration (it will be instructed to load the `yasdd-spy` skill); empty = explore in the main session (load `yasdd-spy` directly, no subagent).
 
 2. **MODE DETECTION:**
    - If `$ARGUMENTS` matches an existing bug folder (`.yasdd/bugs/<slug>/` exists) → **CONTINUATION** (step 3).
